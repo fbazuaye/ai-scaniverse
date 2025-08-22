@@ -292,6 +292,60 @@ export type Database = {
         }
         Relationships: []
       }
+      scans: {
+        Row: {
+          ai_summary: string | null
+          ai_tags: string[] | null
+          category: string | null
+          content_type: string
+          created_at: string
+          description: string | null
+          extracted_text: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          is_sensitive: boolean | null
+          metadata: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          content_type: string
+          created_at?: string
+          description?: string | null
+          extracted_text?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          extracted_text?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_history: {
         Row: {
           answer: string
