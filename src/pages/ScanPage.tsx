@@ -16,7 +16,15 @@ import {
   Sparkles,
   Languages,
   Eye,
-  Download
+  Download,
+  Zap,
+  Globe,
+  ImageIcon,
+  TrendingUp,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Target
 } from "lucide-react";
 
 const ScanPage = () => {
@@ -309,36 +317,189 @@ const ScanPage = () => {
           {/* AI Results */}
           {scanResult && (
             <div className="space-y-4">
+              {/* OCR & Text Extraction */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    AI Analysis Results
+                    <FileText className="w-5 h-5" />
+                    OCR Text Extraction
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {scanResult.extractedText && (
-                    <div>
-                      <Label className="flex items-center gap-2 mb-2">
-                        <FileText className="w-4 h-4" />
-                        Extracted Text
-                      </Label>
-                      <Textarea
-                        value={scanResult.extractedText}
-                        readOnly
-                        className="min-h-[120px]"
-                      />
+                    <Textarea
+                      value={scanResult.extractedText}
+                      readOnly
+                      className="min-h-[120px]"
+                      placeholder="Extracted text will appear here..."
+                    />
+                  )}
+                  {scanResult.metadata && (
+                    <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                      <div>Language: {scanResult.metadata.language}</div>
+                      <div>Words: {scanResult.metadata.estimatedWords || 'N/A'}</div>
+                      <div>Confidence: {Math.round((scanResult.metadata.confidence || 0) * 100)}%</div>
+                      <div>Regions: {scanResult.metadata.textRegions || 'N/A'}</div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AI Summary & Smart Insights */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    AI Summary & Smart Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {scanResult.aiSummary && (
+                    <div className="bg-muted p-3 rounded-lg text-sm">
+                      {scanResult.aiSummary}
                     </div>
                   )}
 
-                  {scanResult.aiSummary && (
-                    <div>
-                      <Label className="flex items-center gap-2 mb-2">
-                        <Eye className="w-4 h-4" />
-                        AI Summary
-                      </Label>
+                  {scanResult.smartInsights && (
+                    <div className="grid gap-4">
+                      {scanResult.smartInsights.keyPoints && scanResult.smartInsights.keyPoints.length > 0 && (
+                        <div>
+                          <Label className="flex items-center gap-2 mb-2">
+                            <Target className="w-4 h-4" />
+                            Key Points
+                          </Label>
+                          <ul className="text-sm space-y-1">
+                            {scanResult.smartInsights.keyPoints.map((point: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <CheckCircle className="w-3 h-3 mt-1 text-primary flex-shrink-0" />
+                                {point}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {scanResult.smartInsights.actionItems && scanResult.smartInsights.actionItems.length > 0 && (
+                        <div>
+                          <Label className="flex items-center gap-2 mb-2">
+                            <Zap className="w-4 h-4" />
+                            Action Items
+                          </Label>
+                          <ul className="text-sm space-y-1">
+                            {scanResult.smartInsights.actionItems.map((action: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <Clock className="w-3 h-3 mt-1 text-accent flex-shrink-0" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {scanResult.smartInsights.entities && scanResult.smartInsights.entities.length > 0 && (
+                        <div>
+                          <Label className="mb-2 block">Detected Entities</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {scanResult.smartInsights.entities.map((entity: string, index: number) => (
+                              <span
+                                key={index}
+                                className="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs font-medium"
+                              >
+                                {entity}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Translation */}
+              {scanResult.translation && scanResult.translation.originalLanguage !== 'en' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Languages className="w-5 h-5" />
+                      Translation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm text-muted-foreground">
+                      Original: {scanResult.translation.originalLanguage} → English
+                      <span className="ml-2">({Math.round((scanResult.translation.confidence || 0) * 100)}% confidence)</span>
+                    </div>
+                    {scanResult.translation.translatedText && (
                       <div className="bg-muted p-3 rounded-lg text-sm">
-                        {scanResult.aiSummary}
+                        {scanResult.translation.translatedText}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Image Quality & Enhancement */}
+              {scanResult.enhancement && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ImageIcon className="w-5 h-5" />
+                      Image Quality & Enhancement
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Quality: </span>
+                        <span className={`font-medium ${
+                          scanResult.enhancement.imageQuality === 'excellent' ? 'text-green-600' :
+                          scanResult.enhancement.imageQuality === 'good' ? 'text-blue-600' :
+                          scanResult.enhancement.imageQuality === 'fair' ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {scanResult.enhancement.imageQuality}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Readability: </span>
+                        <span className="font-medium">{scanResult.enhancement.readability}</span>
+                      </div>
+                    </div>
+                    
+                    {scanResult.enhancement.suggestions && scanResult.enhancement.suggestions.length > 0 && (
+                      <div>
+                        <Label className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Enhancement Suggestions
+                        </Label>
+                        <ul className="text-sm space-y-1">
+                          {scanResult.enhancement.suggestions.map((suggestion: string, index: number) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <AlertCircle className="w-3 h-3 mt-1 text-muted-foreground flex-shrink-0" />
+                              {suggestion}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Tags & Category */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="w-5 h-5" />
+                    Classification
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {scanResult.category && (
+                    <div>
+                      <Label className="mb-2 block">Category</Label>
+                      <div className="bg-accent/10 text-accent px-3 py-2 rounded-lg text-sm font-medium inline-block">
+                        {scanResult.category}
                       </div>
                     </div>
                   )}
@@ -359,26 +520,27 @@ const ScanPage = () => {
                     </div>
                   )}
 
-                  {scanResult.category && (
-                    <div>
-                      <Label className="mb-2 block">Category</Label>
-                      <div className="bg-accent/10 text-accent px-3 py-2 rounded-lg text-sm font-medium inline-block">
-                        {scanResult.category}
-                      </div>
+                  {scanResult.isSensitive && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-red-600 font-medium">
+                        Sensitive data detected - Handle with care
+                      </span>
                     </div>
                   )}
-
-                  <div className="flex gap-3 pt-4">
-                    <Button onClick={handleSaveScan} className="flex-1">
-                      <Download className="w-4 h-4 mr-2" />
-                      Save Scan
-                    </Button>
-                    <Button variant="outline" onClick={() => setScanResult(null)}>
-                      Process Again
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button onClick={handleSaveScan} className="flex-1">
+                  <Download className="w-4 h-4 mr-2" />
+                  Save Scan
+                </Button>
+                <Button variant="outline" onClick={() => setScanResult(null)}>
+                  Process Again
+                </Button>
+              </div>
             </div>
           )}
         </div>
