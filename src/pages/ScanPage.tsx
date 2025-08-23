@@ -125,9 +125,20 @@ const ScanPage = () => {
     if (!scanResult) return;
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('scans')
         .insert({
+          user_id: user.id,
           title,
           description,
           content_type: scanType,
