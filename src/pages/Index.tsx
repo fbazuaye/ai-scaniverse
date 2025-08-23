@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, FileImage, FolderOpen, Sparkles } from "lucide-react";
+import { Camera, FileImage, FolderOpen, Sparkles, User, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
 
   const handleScanDocument = () => {
     navigate("/scan?type=document");
@@ -21,18 +23,45 @@ const Index = () => {
     navigate("/my-scans");
   };
 
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Sign out failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border px-4 py-6 shadow-sm">
-        <div className="max-w-md mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">AI ScanPro</h1>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">AI ScanPro</h1>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span className="max-w-24 truncate">{user?.email}</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground text-center">
             Multi-modal AI scanner with intelligent processing
           </p>
         </div>
