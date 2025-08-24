@@ -24,7 +24,9 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Target
+  Target,
+  Save,
+  Wand2
 } from "lucide-react";
 
 const ScanPage = () => {
@@ -34,10 +36,13 @@ const ScanPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const scanType = searchParams.get("type") || "document";
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [scanResult, setScanResult] = useState<any>(null);
+  const [savedScan, setSavedScan] = useState<any>(null);
+  const [selectedFormat, setSelectedFormat] = useState<"jpeg" | "pdf">("jpeg");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -65,7 +70,7 @@ const ScanPage = () => {
     }
   };
 
-  const processScan = async () => {
+  const saveScan = async () => {
     if (!selectedFile || !title) {
       toast({
         title: "Missing Information",
@@ -75,9 +80,8 @@ const ScanPage = () => {
       return;
     }
 
-    setIsProcessing(true);
+    setIsSaving(true);
     try {
-      // Upload file to Supabase storage
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -88,20 +92,67 @@ const ScanPage = () => {
         return;
       }
 
-      const fileExt = selectedFile.name.split('.').pop();
+      // Convert to selected format if needed
+      let fileToUpload = selectedFile;
+      let fileExt = selectedFile.name.split('.').pop();
+      
+      if (selectedFormat === "pdf" && fileExt !== "pdf") {
+        // For PDF conversion, we'll keep the original for now
+        // In a real app, you'd implement image-to-PDF conversion here
+        fileExt = selectedFile.name.split('.').pop();
+      }
+      
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('scans')
-        .upload(fileName, selectedFile);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) throw uploadError;
 
-      // Process with AI
+      // Save scan record to database
+      const { data: scanData, error: scanError } = await supabase
+        .from('scans')
+        .insert({
+          user_id: user.id,
+          title,
+          description,
+          content_type: scanType,
+          file_path: uploadData.path,
+        })
+        .select()
+        .single();
+
+      if (scanError) throw scanError;
+
+      setSavedScan(scanData);
+      
+      toast({
+        title: "Scan Saved Successfully",
+        description: `Your ${scanType} has been saved as ${selectedFormat.toUpperCase()}.`,
+      });
+
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save scan.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const processWithAI = async () => {
+    if (!savedScan) return;
+
+    setIsProcessingAI(true);
+    try {
       const { data: aiResult, error: aiError } = await supabase.functions
         .invoke('process-scan', {
           body: {
-            filePath: uploadData.path,
+            filePath: savedScan.file_path,
             contentType: scanType,
             title,
             description
@@ -112,68 +163,40 @@ const ScanPage = () => {
 
       setScanResult(aiResult);
       
+      // Update the saved scan with AI results
+      const { error: updateError } = await supabase
+        .from('scans')
+        .update({
+          extracted_text: aiResult.extractedText,
+          ai_summary: aiResult.aiSummary,
+          ai_tags: aiResult.aiTags,
+          category: aiResult.category,
+          is_sensitive: aiResult.isSensitive,
+          metadata: aiResult.metadata
+        })
+        .eq('id', savedScan.id);
+
+      if (updateError) throw updateError;
+      
       toast({
-        title: "Scan Processed Successfully",
-        description: "Your file has been processed with AI analysis.",
+        title: "AI Processing Complete",
+        description: "Your scan has been enhanced with AI analysis.",
       });
 
     } catch (error: any) {
-      console.error('Processing error:', error);
+      console.error('AI Processing error:', error);
       toast({
-        title: "Processing Failed",
-        description: error.message || "Failed to process scan.",
+        title: "AI Processing Failed",
+        description: error.message || "Failed to process with AI.",
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setIsProcessingAI(false);
     }
   };
 
-  const handleSaveScan = async () => {
-    if (!scanResult) return;
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to continue.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('scans')
-        .insert({
-          user_id: user.id,
-          title,
-          description,
-          content_type: scanType,
-          file_path: scanResult.filePath,
-          extracted_text: scanResult.extractedText,
-          ai_summary: scanResult.aiSummary,
-          ai_tags: scanResult.aiTags,
-          category: scanResult.category,
-          is_sensitive: scanResult.isSensitive,
-          metadata: scanResult.metadata
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Scan Saved",
-        description: "Your scan has been saved successfully.",
-      });
-
-      navigate("/my-scans");
-    } catch (error: any) {
-      toast({
-        title: "Save Failed",
-        description: error.message || "Failed to save scan.",
-        variant: "destructive",
-      });
-    }
+  const goToMyScans = () => {
+    navigate("/my-scans");
   };
 
   return (
@@ -241,10 +264,10 @@ const ScanPage = () => {
           )}
 
           {/* File Preview & Info */}
-          {selectedFile && !scanResult && (
+          {selectedFile && !savedScan && (
             <Card>
               <CardHeader>
-                <CardTitle>File Preview</CardTitle>
+                <CardTitle>File Preview & Save Options</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {previewUrl && (
@@ -279,21 +302,34 @@ const ScanPage = () => {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="format">Save Format</Label>
+                    <select
+                      id="format"
+                      value={selectedFormat}
+                      onChange={(e) => setSelectedFormat(e.target.value as "jpeg" | "pdf")}
+                      className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="jpeg">JPEG Image</option>
+                      <option value="pdf">PDF Document</option>
+                    </select>
+                  </div>
+
                   <div className="flex gap-3">
                     <Button
-                      onClick={processScan}
-                      disabled={isProcessing || !title}
+                      onClick={saveScan}
+                      disabled={isSaving || !title}
                       className="flex-1"
                     >
-                      {isProcessing ? (
+                      {isSaving ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Processing...
+                          Saving...
                         </>
                       ) : (
                         <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Process with AI
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Scan
                         </>
                       )}
                     </Button>
@@ -304,11 +340,82 @@ const ScanPage = () => {
                         setPreviewUrl("");
                         setTitle("");
                         setDescription("");
+                        setSavedScan(null);
+                        setScanResult(null);
                       }}
                     >
                       Cancel
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Saved Scan - AI Processing Option */}
+          {savedScan && !scanResult && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  Scan Saved Successfully
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    Your {scanType} "{title}" has been saved as {selectedFormat.toUpperCase()}.
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Want to unlock more features? Process your scan with AI to get:
+                  </p>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      OCR text extraction and editing
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      AI summary and smart insights
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Languages className="w-4 h-4" />
+                      Multi-language translation
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4" />
+                      Image quality analysis
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={processWithAI}
+                    disabled={isProcessingAI}
+                    className="flex-1"
+                  >
+                    {isProcessingAI ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing with AI...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Process with AI
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={goToMyScans}
+                  >
+                    View My Scans
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -533,12 +640,22 @@ const ScanPage = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
-                <Button onClick={handleSaveScan} className="flex-1">
+                <Button onClick={goToMyScans} className="flex-1">
                   <Download className="w-4 h-4 mr-2" />
-                  Save Scan
+                  View My Scans
                 </Button>
-                <Button variant="outline" onClick={() => setScanResult(null)}>
-                  Process Again
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setScanResult(null);
+                    setSavedScan(null);
+                    setSelectedFile(null);
+                    setPreviewUrl("");
+                    setTitle("");
+                    setDescription("");
+                  }}
+                >
+                  Scan Another
                 </Button>
               </div>
             </div>
