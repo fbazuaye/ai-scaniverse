@@ -17,7 +17,19 @@ import {
   MoreVertical,
   Download,
   Trash2,
-  Eye
+  Eye,
+  X,
+  Sparkles,
+  Languages,
+  ImageIcon,
+  Globe,
+  AlertCircle,
+  CheckCircle,
+  Target,
+  Zap,
+  TrendingUp,
+  Clock,
+  Copy
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,6 +37,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface Scan {
   id: string;
@@ -37,6 +57,7 @@ interface Scan {
   ai_tags: string[];
   category: string;
   is_sensitive: boolean;
+  metadata?: any;
   created_at: string;
   updated_at: string;
 }
@@ -48,6 +69,9 @@ const MyScansPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     fetchScans();
@@ -105,6 +129,55 @@ const MyScansPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const downloadScan = async (scan: Scan) => {
+    setIsDownloading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('scans')
+        .download(scan.file_path);
+
+      if (error) throw error;
+
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = scan.title || 'scan-file';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Download Started",
+        description: "Your scan is being downloaded.",
+      });
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: error.message || "Failed to download scan.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const viewScanDetails = (scan: Scan) => {
+    setSelectedScan(scan);
+    setIsViewDetailsOpen(true);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to Clipboard",
+      description: "Text has been copied to your clipboard.",
+    });
   };
 
   const filteredScans = scans.filter(scan => {
@@ -247,13 +320,16 @@ const MyScansPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => viewScanDetails(scan)}>
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => downloadScan(scan)}
+                            disabled={isDownloading}
+                          >
                             <Download className="w-4 h-4 mr-2" />
-                            Export
+                            {isDownloading ? "Downloading..." : "Export"}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => deleteScan(scan.id)}
@@ -318,6 +394,212 @@ const MyScansPage = () => {
           )}
         </div>
       </main>
+
+      {/* View Details Dialog */}
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedScan?.content_type === "document" ? (
+                <FileText className="w-5 h-5" />
+              ) : (
+                <Image className="w-5 h-5" />
+              )}
+              {selectedScan?.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedScan && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label>Title</Label>
+                    <p className="text-sm font-medium">{selectedScan.title}</p>
+                  </div>
+                  {selectedScan.description && (
+                    <div>
+                      <Label>Description</Label>
+                      <p className="text-sm text-muted-foreground">{selectedScan.description}</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Content Type</Label>
+                      <p className="text-sm font-medium capitalize">{selectedScan.content_type}</p>
+                    </div>
+                    <div>
+                      <Label>Category</Label>
+                      <p className="text-sm font-medium">{selectedScan.category || "Uncategorized"}</p>
+                    </div>
+                    <div>
+                      <Label>Created</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(selectedScan.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Last Updated</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(selectedScan.updated_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  {selectedScan.is_sensitive && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-red-600 font-medium">
+                        Sensitive data detected - Handle with care
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Extracted Text */}
+              {selectedScan.extracted_text && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Extracted Text
+                      </span>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => copyToClipboard(selectedScan.extracted_text)}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={selectedScan.extracted_text}
+                      readOnly
+                      className="min-h-[200px] resize-none"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* AI Summary */}
+              {selectedScan.ai_summary && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5" />
+                        AI Summary
+                      </span>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => copyToClipboard(selectedScan.ai_summary)}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-muted p-4 rounded-lg text-sm">
+                      {selectedScan.ai_summary}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* AI Tags */}
+              {selectedScan.ai_tags && selectedScan.ai_tags.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      AI Tags
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedScan.ai_tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Metadata */}
+              {selectedScan.metadata && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ImageIcon className="w-5 h-5" />
+                      Analysis Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {selectedScan.metadata.language && (
+                        <div>
+                          <Label>Language</Label>
+                          <p className="font-medium">{selectedScan.metadata.language}</p>
+                        </div>
+                      )}
+                      {selectedScan.metadata.confidence && (
+                        <div>
+                          <Label>OCR Confidence</Label>
+                          <p className="font-medium">{Math.round(selectedScan.metadata.confidence * 100)}%</p>
+                        </div>
+                      )}
+                      {selectedScan.metadata.estimatedWords && (
+                        <div>
+                          <Label>Word Count</Label>
+                          <p className="font-medium">{selectedScan.metadata.estimatedWords}</p>
+                        </div>
+                      )}
+                      {selectedScan.metadata.textRegions && (
+                        <div>
+                          <Label>Text Regions</Label>
+                          <p className="font-medium">{selectedScan.metadata.textRegions}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  onClick={() => downloadScan(selectedScan)}
+                  disabled={isDownloading}
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  {isDownloading ? "Downloading..." : "Download Original"}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsViewDetailsOpen(false)}
+                  className="flex-1"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
