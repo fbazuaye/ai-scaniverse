@@ -82,7 +82,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
       {/* Header with Back to Home button */}
-      <header className="flex justify-start p-4">
+      <header className="flex justify-start p-4 sm:p-6">
         <Button 
           variant="ghost" 
           size="sm" 
@@ -90,32 +90,33 @@ const AuthPage = () => {
           className="flex items-center gap-2"
         >
           <Home className="w-4 h-4" />
-          Back to Home
+          <span className="hidden sm:inline">Back to Home</span>
+          <span className="sm:hidden">Home</span>
         </Button>
       </header>
 
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md lg:max-w-lg space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="p-2 bg-primary/10 rounded-full">
-              <Camera className="h-6 w-6 text-primary" />
+            <div className="p-2 sm:p-3 bg-primary/10 rounded-full">
+              <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">AI ScanPro</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">AI ScanPro</h1>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto">
             Access your AI-powered document and image scanner
           </p>
         </div>
 
         <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Welcome</CardTitle>
-            <CardDescription className="text-center">
+          <CardHeader className="space-y-1 p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl text-center">Welcome</CardTitle>
+            <CardDescription className="text-center text-sm sm:text-base">
               Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -198,18 +199,18 @@ const AuthPage = () => {
         </Card>
 
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center space-x-6">
+          <div className="flex items-center justify-center space-x-4 sm:space-x-6 lg:space-x-8">
             <div className="text-center">
-              <Scan className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Smart Scanning</p>
+              <Scan className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+              <p className="text-xs sm:text-sm text-muted-foreground">Smart Scanning</p>
             </div>
             <div className="text-center">
-              <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">AI Analysis</p>
+              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+              <p className="text-xs sm:text-sm text-muted-foreground">AI Analysis</p>
             </div>
             <div className="text-center">
-              <Camera className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Enhancement</p>
+              <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+              <p className="text-xs sm:text-sm text-muted-foreground">Enhancement</p>
             </div>
           </div>
         </div>

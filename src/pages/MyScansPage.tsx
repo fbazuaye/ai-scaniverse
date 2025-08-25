@@ -209,8 +209,8 @@ const MyScansPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border px-4 py-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
+      <header className="bg-card border-b border-border px-4 sm:px-6 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -220,20 +220,20 @@ const MyScansPage = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-foreground">My Scans</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">My Scans</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               {scans.length} scan{scans.length !== 1 ? 's' : ''} total
             </p>
           </div>
         </div>
       </header>
 
-      <main className="px-4 py-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <main className="px-4 sm:px-6 py-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           {/* Search and Filter */}
           <Card>
-            <CardContent className="p-4">
-              <div className="flex gap-4">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -245,7 +245,7 @@ const MyScansPage = () => {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <Filter className="w-4 h-4 mr-2" />
                       Filter
                     </Button>
@@ -298,7 +298,7 @@ const MyScansPage = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredScans.map((scan) => (
                 <Card key={scan.id} className="hover:shadow-lg transition-all duration-200">
                   <CardHeader className="pb-3">

@@ -203,8 +203,8 @@ const ScanPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border px-4 py-4 shadow-sm">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
+      <header className="bg-card border-b border-border px-4 sm:px-6 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -214,18 +214,18 @@ const ScanPage = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">
               Scan {scanType === "document" ? "Document" : "Image"}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               AI-powered scanning and analysis
             </p>
           </div>
         </div>
       </header>
 
-      <main className="px-4 py-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <main className="px-4 sm:px-6 py-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           {/* File Selection */}
           {!selectedFile && (
             <Card>
@@ -236,22 +236,22 @@ const ScanPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button
                     onClick={handleCameraCapture}
-                    className="h-24 flex flex-col gap-2"
+                    className="h-20 sm:h-24 lg:h-28 flex flex-col gap-2"
                     variant="outline"
                   >
-                    <Camera className="w-6 h-6" />
-                    <span>Camera</span>
+                    <Camera className="w-6 h-6 sm:w-7 sm:h-7" />
+                    <span className="text-sm sm:text-base">Camera</span>
                   </Button>
                   <Button
                     onClick={handleFileUpload}
-                    className="h-24 flex flex-col gap-2"
+                    className="h-20 sm:h-24 lg:h-28 flex flex-col gap-2"
                     variant="outline"
                   >
-                    <Upload className="w-6 h-6" />
-                    <span>Upload</span>
+                    <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
+                    <span className="text-sm sm:text-base">Upload</span>
                   </Button>
                 </div>
                 <input
@@ -271,9 +271,9 @@ const ScanPage = () => {
               <CardHeader>
                 <CardTitle>File Preview & Save Options</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 sm:space-y-6">
                 {previewUrl && (
-                  <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                  <div className="aspect-video bg-muted rounded-lg overflow-hidden max-w-full">
                     <img 
                       src={previewUrl} 
                       alt="Preview" 
@@ -317,11 +317,11 @@ const ScanPage = () => {
                     </select>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       onClick={saveScan}
                       disabled={isSaving || !title}
-                      className="flex-1"
+                      className="flex-1 order-2 sm:order-1"
                     >
                       {isSaving ? (
                         <>
@@ -337,6 +337,7 @@ const ScanPage = () => {
                     </Button>
                     <Button
                       variant="outline"
+                      className="order-1 sm:order-2"
                       onClick={() => {
                         setSelectedFile(null);
                         setPreviewUrl("");
