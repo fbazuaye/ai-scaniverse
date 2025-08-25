@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Camera, Scan, FileText } from 'lucide-react';
+import { Loader2, Camera, Scan, FileText, Home } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -79,8 +80,22 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
+      {/* Header with Back to Home button */}
+      <header className="flex justify-start p-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2"
+        >
+          <Home className="w-4 h-4" />
+          Back to Home
+        </Button>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="p-2 bg-primary/10 rounded-full">
@@ -198,7 +213,10 @@ const AuthPage = () => {
             </div>
           </div>
         </div>
+        </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };

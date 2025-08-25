@@ -5,6 +5,7 @@ import { Camera, FileImage, FolderOpen, Sparkles, User, LogOut } from "lucide-re
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -149,13 +150,7 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-12 pb-6 text-center text-xs text-muted-foreground px-4">
-        <div className="max-w-md mx-auto border-t border-border pt-6">
-          <p>Designed By Frank Bazuaye</p>
-          <p className="mt-1">Powered By LiveGig Ltd</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

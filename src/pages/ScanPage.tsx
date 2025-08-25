@@ -26,8 +26,10 @@ import {
   Clock,
   Target,
   Save,
-  Wand2
+  Wand2,
+  Home
 } from "lucide-react";
+import Footer from "@/components/Footer";
 
 const ScanPage = () => {
   const [searchParams] = useSearchParams();
@@ -662,6 +664,8 @@ const ScanPage = () => {
           )}
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 };
