@@ -14,26 +14,52 @@ serve(async (req) => {
   }
 
   try {
-    const { filePath, contentType, title, description } = await req.json();
+    const requestBody = await req.json();
+    const { filePath, contentType, title, description } = requestBody;
     
-    console.log('Processing scan:', { filePath, contentType, title });
+    console.log('Processing scan request:', { filePath, contentType, title });
+
+    // Validate required parameters
+    if (!filePath) {
+      throw new Error('File path is required');
+    }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the uploaded file
+    console.log('Downloading file from storage...');
     const { data: fileData, error: fileError } = await supabase.storage
       .from('scans')
       .download(filePath);
 
     if (fileError) {
+      console.error('File download error:', fileError);
       throw new Error(`Failed to download file: ${fileError.message}`);
     }
 
+    // Convert file to base64
+    console.log('Converting file to base64...');
     const fileBuffer = await fileData.arrayBuffer();
-    const fileBase64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+    
+    // Use a more memory-efficient approach for base64 conversion
+    const uint8Array = new Uint8Array(fileBuffer);
+    let binary = '';
+    const chunkSize = 0x8000; // 32KB chunks
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const fileBase64 = btoa(binary);
 
     // Process with OpenAI Vision for OCR and analysis
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -41,6 +67,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
+    console.log('Sending request to OpenAI...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -53,32 +80,23 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an advanced AI assistant that provides comprehensive document and image analysis with the following capabilities:
+            content: `You are an advanced AI assistant that provides comprehensive document and image analysis. Analyze the provided image/document and extract all relevant information.
 
-CORE FEATURES:
-1. OCR Text Extraction - Extract all visible text with high accuracy
-2. AI Summary - Generate intelligent summaries and key insights  
-3. Translation - Detect language and provide translations to English if needed
-4. Enhancement Analysis - Assess image quality and suggest improvements
-5. Multi-language Support - Handle documents in any language
-6. Smart Categorization - Classify content intelligently
-7. Sensitive Data Detection - Identify PII, financial data, etc.
-
-Return your analysis in this JSON format:
+Return your analysis in this exact JSON format:
 {
-  "extractedText": "all text found in the image/document with high accuracy",
+  "extractedText": "all visible text found in the image/document",
   "aiSummary": "intelligent summary highlighting key points and insights",
-  "aiTags": ["relevant", "smart", "tags", "based", "on", "content"],
+  "aiTags": ["relevant", "tags", "based", "on", "content"],
   "category": "passport|invoice|receipt|photo|document|contract|form|certificate|other",
   "isSensitive": false,
   "translation": {
     "originalLanguage": "detected language",
-    "translatedText": "english translation if not in english, null if already english",
+    "translatedText": "english translation if not in english, otherwise null",
     "confidence": 0.95
   },
   "enhancement": {
     "imageQuality": "excellent|good|fair|poor",
-    "suggestions": ["suggestion1", "suggestion2"],
+    "suggestions": ["improvement suggestion 1", "improvement suggestion 2"],
     "readability": "high|medium|low"
   },
   "smartInsights": {
@@ -88,12 +106,12 @@ Return your analysis in this JSON format:
     "documentStructure": "well-organized|partially-structured|unstructured"
   },
   "metadata": {
-    "language": "detected language (ISO code)",
+    "language": "detected language ISO code",
     "confidence": 0.95,
     "documentType": "specific document type",
-    "processingTime": "timestamp",
-    "textRegions": number,
-    "estimatedWords": number
+    "processingTime": "${new Date().toISOString()}",
+    "textRegions": 1,
+    "estimatedWords": 100
   }
 }`
           },
@@ -102,12 +120,13 @@ Return your analysis in this JSON format:
             content: [
               {
                 type: 'text',
-                text: `Please analyze this ${contentType} titled "${title}". ${description ? `Description: ${description}` : ''}`
+                text: `Please analyze this ${contentType || 'image'} ${title ? `titled "${title}"` : ''}. ${description ? `Description: ${description}` : ''} Provide comprehensive analysis including OCR, categorization, and insights.`
               },
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:image/jpeg;base64,${fileBase64}`
+                  url: `data:image/jpeg;base64,${fileBase64}`,
+                  detail: 'high'
                 }
               }
             ]
@@ -119,28 +138,48 @@ Return your analysis in this JSON format:
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
     }
 
     const openaiResult = await openaiResponse.json();
-    const aiAnalysis = JSON.parse(openaiResult.choices[0].message.content);
+    console.log('OpenAI response received');
 
-    console.log('AI analysis completed:', aiAnalysis);
+    if (!openaiResult.choices || !openaiResult.choices[0]) {
+      throw new Error('Invalid OpenAI response format');
+    }
 
-    return new Response(JSON.stringify({
+    let aiAnalysis;
+    try {
+      aiAnalysis = JSON.parse(openaiResult.choices[0].message.content);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Raw content:', openaiResult.choices[0].message.content);
+      throw new Error('Failed to parse AI analysis response');
+    }
+
+    console.log('AI analysis completed successfully');
+
+    const response = {
       filePath,
       ...aiAnalysis,
-      success: true
-    }), {
+      success: true,
+      timestamp: new Date().toISOString()
+    };
+
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: any) {
     console.error('Error in process-scan function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      success: false 
-    }), {
+    
+    const errorResponse = {
+      error: error.message || 'Unknown error occurred',
+      success: false,
+      timestamp: new Date().toISOString()
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
