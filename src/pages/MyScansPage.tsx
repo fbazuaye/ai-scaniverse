@@ -46,6 +46,22 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
+interface ScanDocument {
+  id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  extracted_text?: string;
+  ai_summary?: string;
+  ai_tags?: string[];
+  category?: string;
+  is_sensitive: boolean;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Scan {
   id: string;
   title: string;
@@ -60,6 +76,7 @@ interface Scan {
   metadata?: any;
   created_at: string;
   updated_at: string;
+  documents?: ScanDocument[];
 }
 
 const MyScansPage = () => {
@@ -89,9 +106,27 @@ const MyScansPage = () => {
         return;
       }
 
+      // Fetch scans with document count
       const { data, error } = await supabase
         .from('scans')
-        .select('*')
+        .select(`
+          *,
+          documents:scan_documents(
+            id,
+            file_path,
+            file_name,
+            file_size,
+            file_type,
+            extracted_text,
+            ai_summary,
+            ai_tags,
+            category,
+            is_sensitive,
+            metadata,
+            created_at,
+            updated_at
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -373,6 +408,13 @@ const MyScansPage = () => {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
                       {new Date(scan.created_at).toLocaleDateString()}
+                      {scan.documents && scan.documents.length > 0 && (
+                        <>
+                          <span>•</span>
+                          <FileText className="w-3 h-3" />
+                          {scan.documents.length} file{scan.documents.length !== 1 ? 's' : ''}
+                        </>
+                      )}
                       {scan.category && (
                         <>
                           <span>•</span>

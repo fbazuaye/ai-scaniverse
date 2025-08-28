@@ -27,9 +27,50 @@ import {
   Target,
   Save,
   Wand2,
-  Home
+  Home,
+  X,
+  Plus
 } from "lucide-react";
 import Footer from "@/components/Footer";
+
+interface FileWithPreview {
+  file: File;
+  preview: string;
+  id: string;
+}
+
+interface DocumentResult {
+  id: string;
+  extractedText?: string;
+  aiSummary?: string;
+  aiTags?: string[];
+  category?: string;
+  isSensitive?: boolean;
+  translation?: {
+    originalLanguage: string;
+    translatedText?: string;
+    confidence: number;
+  };
+  enhancement?: {
+    imageQuality: string;
+    suggestions: string[];
+    readability: string;
+  };
+  smartInsights?: {
+    keyPoints: string[];
+    actionItems: string[];
+    entities: string[];
+    documentStructure: string;
+  };
+  metadata?: {
+    language: string;
+    confidence: number;
+    documentType: string;
+    processingTime: string;
+    textRegions: number;
+    estimatedWords: number;
+  };
+}
 
 const ScanPage = () => {
   const [searchParams] = useSearchParams();
@@ -40,22 +81,40 @@ const ScanPage = () => {
   const scanType = searchParams.get("type") || "document";
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([]);
+  const [scanResults, setScanResults] = useState<DocumentResult[]>([]);
   const [savedScan, setSavedScan] = useState<any>(null);
+  const [savedDocuments, setSavedDocuments] = useState<any[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<"jpeg" | "pdf">("jpeg");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setTitle(file.name.split('.')[0]);
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      const newFiles: FileWithPreview[] = files.map(file => ({
+        file,
+        preview: URL.createObjectURL(file),
+        id: Math.random().toString(36).substr(2, 9)
+      }));
+      
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      
+      // Set title from first file if not already set
+      if (!title && files[0]) {
+        setTitle(files[0].name.split('.')[0]);
+      }
     }
+  };
+
+  const removeFile = (id: string) => {
+    setSelectedFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === id);
+      if (fileToRemove) {
+        URL.revokeObjectURL(fileToRemove.preview);
+      }
+      return prev.filter(f => f.id !== id);
+    });
   };
 
   const handleCameraCapture = () => {
@@ -73,10 +132,10 @@ const ScanPage = () => {
   };
 
   const saveScan = async () => {
-    if (!selectedFile || !title) {
+    if (selectedFiles.length === 0 || !title) {
       toast({
         title: "Missing Information",
-        description: "Please select a file and enter a title.",
+        description: "Please select at least one file and enter a title.",
         variant: "destructive",
       });
       return;
@@ -94,25 +153,7 @@ const ScanPage = () => {
         return;
       }
 
-      // Convert to selected format if needed
-      let fileToUpload = selectedFile;
-      let fileExt = selectedFile.name.split('.').pop();
-      
-      if (selectedFormat === "pdf" && fileExt !== "pdf") {
-        // For PDF conversion, we'll keep the original for now
-        // In a real app, you'd implement image-to-PDF conversion here
-        fileExt = selectedFile.name.split('.').pop();
-      }
-      
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('scans')
-        .upload(fileName, fileToUpload);
-
-      if (uploadError) throw uploadError;
-
-      // Save scan record to database
+      // Create the main scan record first
       const { data: scanData, error: scanError } = await supabase
         .from('scans')
         .insert({
@@ -120,18 +161,59 @@ const ScanPage = () => {
           title,
           description,
           content_type: scanType,
-          file_path: uploadData.path,
+          file_path: '', // Will be updated with first document's path
         })
         .select()
         .single();
 
       if (scanError) throw scanError;
 
+      // Upload files and create document records
+      const uploadedDocuments = [];
+      
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const { file } = selectedFiles[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
+        
+        // Upload file to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('scans')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        // Create document record
+        const { data: docData, error: docError } = await supabase
+          .from('scan_documents')
+          .insert({
+            scan_id: scanData.id,
+            file_path: uploadData.path,
+            file_name: file.name,
+            file_size: file.size,
+            file_type: file.type,
+          })
+          .select()
+          .single();
+
+        if (docError) throw docError;
+        uploadedDocuments.push(docData);
+      }
+
+      // Update main scan with first document's path
+      if (uploadedDocuments.length > 0) {
+        await supabase
+          .from('scans')
+          .update({ file_path: uploadedDocuments[0].file_path })
+          .eq('id', scanData.id);
+      }
+
       setSavedScan(scanData);
+      setSavedDocuments(uploadedDocuments);
       
       toast({
         title: "Scan Saved Successfully",
-        description: `Your ${scanType} has been saved as ${selectedFormat.toUpperCase()}.`,
+        description: `Your ${selectedFiles.length} document(s) have been saved.`,
       });
 
     } catch (error: any) {
@@ -147,42 +229,53 @@ const ScanPage = () => {
   };
 
   const processWithAI = async () => {
-    if (!savedScan) return;
+    if (!savedScan || savedDocuments.length === 0) return;
 
     setIsProcessingAI(true);
     try {
-      const { data: aiResult, error: aiError } = await supabase.functions
-        .invoke('process-scan', {
-          body: {
-            filePath: savedScan.file_path,
-            contentType: scanType,
-            title,
-            description
-          }
-        });
-
-      if (aiError) throw aiError;
-
-      setScanResult(aiResult);
+      const results: DocumentResult[] = [];
       
-      // Update the saved scan with AI results
-      const { error: updateError } = await supabase
-        .from('scans')
-        .update({
-          extracted_text: aiResult.extractedText,
-          ai_summary: aiResult.aiSummary,
-          ai_tags: aiResult.aiTags,
-          category: aiResult.category,
-          is_sensitive: aiResult.isSensitive,
-          metadata: aiResult.metadata
-        })
-        .eq('id', savedScan.id);
+      // Process each document with AI
+      for (const doc of savedDocuments) {
+        const { data: aiResult, error: aiError } = await supabase.functions
+          .invoke('process-scan', {
+            body: {
+              filePath: doc.file_path,
+              contentType: scanType,
+              title: doc.file_name,
+              description
+            }
+          });
 
-      if (updateError) throw updateError;
+        if (aiError) {
+          console.error(`AI processing failed for ${doc.file_name}:`, aiError);
+          continue;
+        }
+
+        // Update document record with AI results
+        await supabase
+          .from('scan_documents')
+          .update({
+            extracted_text: aiResult.extractedText,
+            ai_summary: aiResult.aiSummary,
+            ai_tags: aiResult.aiTags,
+            category: aiResult.category,
+            is_sensitive: aiResult.isSensitive,
+            metadata: aiResult.metadata
+          })
+          .eq('id', doc.id);
+
+        results.push({
+          id: doc.id,
+          ...aiResult
+        });
+      }
+
+      setScanResults(results);
       
       toast({
         title: "AI Processing Complete",
-        description: "Your scan has been enhanced with AI analysis.",
+        description: `${results.length} document(s) processed with AI analysis.`,
       });
 
     } catch (error: any) {
@@ -201,6 +294,16 @@ const ScanPage = () => {
     navigate("/my-scans");
   };
 
+  const resetScan = () => {
+    selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
+    setSelectedFiles([]);
+    setScanResults([]);
+    setSavedScan(null);
+    setSavedDocuments([]);
+    setTitle("");
+    setDescription("");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border px-4 sm:px-6 py-4 shadow-sm">
@@ -215,10 +318,10 @@ const ScanPage = () => {
           </Button>
           <div>
             <h1 className="text-lg sm:text-xl font-semibold text-foreground">
-              Scan {scanType === "document" ? "Document" : "Image"}
+              Scan Multiple {scanType === "document" ? "Documents" : "Images"}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
-              AI-powered scanning and analysis
+              AI-powered scanning and analysis for multiple files
             </p>
           </div>
         </div>
@@ -227,60 +330,75 @@ const ScanPage = () => {
       <main className="px-4 sm:px-6 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* File Selection */}
-          {!selectedFile && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
-                  Select File
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button
-                    onClick={handleCameraCapture}
-                    className="h-20 sm:h-24 lg:h-28 flex flex-col gap-2"
-                    variant="outline"
-                  >
-                    <Camera className="w-6 h-6 sm:w-7 sm:h-7" />
-                    <span className="text-sm sm:text-base">Camera</span>
-                  </Button>
-                  <Button
-                    onClick={handleFileUpload}
-                    className="h-20 sm:h-24 lg:h-28 flex flex-col gap-2"
-                    variant="outline"
-                  >
-                    <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
-                    <span className="text-sm sm:text-base">Upload</span>
-                  </Button>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={scanType === "document" ? "image/*,application/pdf" : "image/*"}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Select Files ({selectedFiles.length} selected)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button
+                  onClick={handleCameraCapture}
+                  className="h-20 sm:h-24 lg:h-28 flex flex-col gap-2"
+                  variant="outline"
+                >
+                  <Camera className="w-6 h-6 sm:w-7 sm:h-7" />
+                  <span className="text-sm sm:text-base">Camera</span>
+                </Button>
+                <Button
+                  onClick={handleFileUpload}
+                  className="h-20 sm:h-24 lg:h-28 flex flex-col gap-2"
+                  variant="outline"
+                >
+                  <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
+                  <span className="text-sm sm:text-base">Upload Multiple</span>
+                </Button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={scanType === "document" ? "image/*,application/pdf" : "image/*"}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </CardContent>
+          </Card>
 
-          {/* File Preview & Info */}
-          {selectedFile && !savedScan && (
+          {/* File Previews */}
+          {selectedFiles.length > 0 && !savedScan && (
             <Card>
               <CardHeader>
-                <CardTitle>File Preview & Save Options</CardTitle>
+                <CardTitle>File Previews & Save Options</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6">
-                {previewUrl && (
-                  <div className="aspect-video bg-muted rounded-lg overflow-hidden max-w-full">
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
+                {/* File Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedFiles.map((fileWithPreview) => (
+                    <div key={fileWithPreview.id} className="relative">
+                      <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                        <img 
+                          src={fileWithPreview.preview} 
+                          alt={fileWithPreview.file.name} 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2 w-6 h-6 p-0"
+                        onClick={() => removeFile(fileWithPreview.id)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                        {fileWithPreview.file.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
                 
                 <div className="space-y-4">
                   <div>
@@ -320,32 +438,25 @@ const ScanPage = () => {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       onClick={saveScan}
-                      disabled={isSaving || !title}
+                      disabled={isSaving || !title || selectedFiles.length === 0}
                       className="flex-1 order-2 sm:order-1"
                     >
                       {isSaving ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
+                          Saving {selectedFiles.length} files...
                         </>
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          Save Scan
+                          Save {selectedFiles.length} File(s)
                         </>
                       )}
                     </Button>
                     <Button
                       variant="outline"
                       className="order-1 sm:order-2"
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setPreviewUrl("");
-                        setTitle("");
-                        setDescription("");
-                        setSavedScan(null);
-                        setScanResult(null);
-                      }}
+                      onClick={resetScan}
                     >
                       Cancel
                     </Button>
@@ -356,7 +467,7 @@ const ScanPage = () => {
           )}
 
           {/* Saved Scan - AI Processing Option */}
-          {savedScan && !scanResult && (
+          {savedScan && scanResults.length === 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -367,22 +478,22 @@ const ScanPage = () => {
               <CardContent className="space-y-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <p className="text-sm text-green-800">
-                    Your {scanType} "{title}" has been saved as {selectedFormat.toUpperCase()}.
+                    Your {savedDocuments.length} document(s) "{title}" have been saved.
                   </p>
                 </div>
                 
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Want to unlock more features? Process your scan with AI to get:
+                    Want to unlock more features? Process your documents with AI to get:
                   </p>
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <FileText className="w-4 h-4" />
-                      OCR text extraction and editing
+                      OCR text extraction and editing for each document
                     </li>
                     <li className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4" />
-                      AI summary and smart insights
+                      AI summary and smart insights per document
                     </li>
                     <li className="flex items-center gap-2">
                       <Languages className="w-4 h-4" />
@@ -390,7 +501,7 @@ const ScanPage = () => {
                     </li>
                     <li className="flex items-center gap-2">
                       <ImageIcon className="w-4 h-4" />
-                      Image quality analysis
+                      Image quality analysis for each file
                     </li>
                   </ul>
                 </div>
@@ -404,12 +515,12 @@ const ScanPage = () => {
                     {isProcessingAI ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing with AI...
+                        Processing {savedDocuments.length} documents...
                       </>
                     ) : (
                       <>
                         <Wand2 className="w-4 h-4 mr-2" />
-                        Process with AI
+                        Process {savedDocuments.length} Documents with AI
                       </>
                     )}
                   </Button>
@@ -424,222 +535,97 @@ const ScanPage = () => {
             </Card>
           )}
 
-          {/* AI Results */}
-          {scanResult && (
-            <div className="space-y-4">
-              {/* OCR & Text Extraction */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    OCR Text Extraction
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {scanResult.extractedText && (
-                    <Textarea
-                      value={scanResult.extractedText}
-                      readOnly
-                      className="min-h-[120px]"
-                      placeholder="Extracted text will appear here..."
-                    />
-                  )}
-                  {scanResult.metadata && (
-                    <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-                      <div>Language: {scanResult.metadata.language}</div>
-                      <div>Words: {scanResult.metadata.estimatedWords || 'N/A'}</div>
-                      <div>Confidence: {Math.round((scanResult.metadata.confidence || 0) * 100)}%</div>
-                      <div>Regions: {scanResult.metadata.textRegions || 'N/A'}</div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+          {/* AI Results for Multiple Documents */}
+          {scanResults.length > 0 && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">AI Analysis Results</h2>
+                <span className="text-sm text-muted-foreground">
+                  {scanResults.length} document(s) processed
+                </span>
+              </div>
 
-              {/* AI Summary & Smart Insights */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    AI Summary & Smart Insights
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {scanResult.aiSummary && (
-                    <div className="bg-muted p-3 rounded-lg text-sm">
-                      {scanResult.aiSummary}
-                    </div>
-                  )}
-
-                  {scanResult.smartInsights && (
-                    <div className="grid gap-4">
-                      {scanResult.smartInsights.keyPoints && scanResult.smartInsights.keyPoints.length > 0 && (
-                        <div>
-                          <Label className="flex items-center gap-2 mb-2">
-                            <Target className="w-4 h-4" />
-                            Key Points
-                          </Label>
-                          <ul className="text-sm space-y-1">
-                            {scanResult.smartInsights.keyPoints.map((point: string, index: number) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <CheckCircle className="w-3 h-3 mt-1 text-primary flex-shrink-0" />
-                                {point}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {scanResult.smartInsights.actionItems && scanResult.smartInsights.actionItems.length > 0 && (
-                        <div>
-                          <Label className="flex items-center gap-2 mb-2">
-                            <Zap className="w-4 h-4" />
-                            Action Items
-                          </Label>
-                          <ul className="text-sm space-y-1">
-                            {scanResult.smartInsights.actionItems.map((action: string, index: number) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <Clock className="w-3 h-3 mt-1 text-accent flex-shrink-0" />
-                                {action}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {scanResult.smartInsights.entities && scanResult.smartInsights.entities.length > 0 && (
-                        <div>
-                          <Label className="mb-2 block">Detected Entities</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {scanResult.smartInsights.entities.map((entity: string, index: number) => (
-                              <span
-                                key={index}
-                                className="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs font-medium"
-                              >
-                                {entity}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Translation */}
-              {scanResult.translation && scanResult.translation.originalLanguage !== 'en' && (
-                <Card>
+              {scanResults.map((result, index) => (
+                <Card key={result.id} className="border-l-4 border-l-primary">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Languages className="w-5 h-5" />
-                      Translation
+                      <FileText className="w-5 h-5" />
+                      Document {index + 1} Analysis
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-sm text-muted-foreground">
-                      Original: {scanResult.translation.originalLanguage} → English
-                      <span className="ml-2">({Math.round((scanResult.translation.confidence || 0) * 100)}% confidence)</span>
-                    </div>
-                    {scanResult.translation.translatedText && (
-                      <div className="bg-muted p-3 rounded-lg text-sm">
-                        {scanResult.translation.translatedText}
+                  <CardContent className="space-y-4">
+                    {/* OCR Text */}
+                    {result.extractedText && (
+                      <div>
+                        <Label className="mb-2 block">Extracted Text</Label>
+                        <Textarea
+                          value={result.extractedText}
+                          readOnly
+                          className="min-h-[100px]"
+                        />
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              )}
 
-              {/* Image Quality & Enhancement */}
-              {scanResult.enhancement && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ImageIcon className="w-5 h-5" />
-                      Image Quality & Enhancement
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Quality: </span>
-                        <span className={`font-medium ${
-                          scanResult.enhancement.imageQuality === 'excellent' ? 'text-green-600' :
-                          scanResult.enhancement.imageQuality === 'good' ? 'text-blue-600' :
-                          scanResult.enhancement.imageQuality === 'fair' ? 'text-yellow-600' : 'text-red-600'
-                        }`}>
-                          {scanResult.enhancement.imageQuality}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Readability: </span>
-                        <span className="font-medium">{scanResult.enhancement.readability}</span>
-                      </div>
-                    </div>
-                    
-                    {scanResult.enhancement.suggestions && scanResult.enhancement.suggestions.length > 0 && (
+                    {/* AI Summary */}
+                    {result.aiSummary && (
                       <div>
                         <Label className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="w-4 h-4" />
-                          Enhancement Suggestions
+                          <Sparkles className="w-4 h-4" />
+                          AI Summary
+                        </Label>
+                        <div className="bg-muted p-3 rounded-lg text-sm">
+                          {result.aiSummary}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Key Points */}
+                    {result.smartInsights?.keyPoints && result.smartInsights.keyPoints.length > 0 && (
+                      <div>
+                        <Label className="flex items-center gap-2 mb-2">
+                          <Target className="w-4 h-4" />
+                          Key Points
                         </Label>
                         <ul className="text-sm space-y-1">
-                          {scanResult.enhancement.suggestions.map((suggestion: string, index: number) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <AlertCircle className="w-3 h-3 mt-1 text-muted-foreground flex-shrink-0" />
-                              {suggestion}
+                          {result.smartInsights.keyPoints.map((point: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <CheckCircle className="w-3 h-3 mt-1 text-primary flex-shrink-0" />
+                              {point}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
+
+                    {/* Tags and Category */}
+                    <div className="flex flex-wrap gap-2">
+                      {result.category && (
+                        <span className="bg-accent/10 text-accent px-3 py-1 rounded-lg text-sm font-medium">
+                          {result.category}
+                        </span>
+                      )}
+                      {result.aiTags?.map((tag: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Sensitive Data Warning */}
+                    {result.isSensitive && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        <span className="text-sm text-red-600 font-medium">
+                          Sensitive data detected - Handle with care
+                        </span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              )}
-
-              {/* Tags & Category */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="w-5 h-5" />
-                    Classification
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {scanResult.category && (
-                    <div>
-                      <Label className="mb-2 block">Category</Label>
-                      <div className="bg-accent/10 text-accent px-3 py-2 rounded-lg text-sm font-medium inline-block">
-                        {scanResult.category}
-                      </div>
-                    </div>
-                  )}
-
-                  {scanResult.aiTags && scanResult.aiTags.length > 0 && (
-                    <div>
-                      <Label className="mb-2 block">AI Tags</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {scanResult.aiTags.map((tag: string, index: number) => (
-                          <span
-                            key={index}
-                            className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {scanResult.isSensitive && (
-                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-red-600" />
-                      <span className="text-sm text-red-600 font-medium">
-                        Sensitive data detected - Handle with care
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              ))}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
@@ -649,16 +635,9 @@ const ScanPage = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => {
-                    setScanResult(null);
-                    setSavedScan(null);
-                    setSelectedFile(null);
-                    setPreviewUrl("");
-                    setTitle("");
-                    setDescription("");
-                  }}
+                  onClick={resetScan}
                 >
-                  Scan Another
+                  Scan More Documents
                 </Button>
               </div>
             </div>

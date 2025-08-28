@@ -292,6 +292,65 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_documents: {
+        Row: {
+          ai_summary: string | null
+          ai_tags: string[] | null
+          category: string | null
+          created_at: string
+          extracted_text: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          is_sensitive: boolean | null
+          metadata: Json | null
+          scan_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          created_at?: string
+          extracted_text?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          scan_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          scan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_documents_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scans: {
         Row: {
           ai_summary: string | null
