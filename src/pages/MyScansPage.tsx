@@ -166,12 +166,12 @@ const MyScansPage = () => {
     }
   };
 
-  const downloadScan = async (scan: Scan) => {
+  const downloadDocument = async (filePath: string, fileName: string) => {
     setIsDownloading(true);
     try {
       const { data, error } = await supabase.storage
         .from('scans')
-        .download(scan.file_path);
+        .download(filePath);
 
       if (error) throw error;
 
@@ -180,7 +180,7 @@ const MyScansPage = () => {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = scan.title || 'scan-file';
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -188,13 +188,61 @@ const MyScansPage = () => {
 
       toast({
         title: "Download Started",
-        description: "Your scan is being downloaded.",
+        description: `${fileName} is being downloaded.`,
       });
     } catch (error: any) {
       console.error('Download error:', error);
       toast({
         title: "Download Failed",
-        description: error.message || "Failed to download scan.",
+        description: error.message || "Failed to download document.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const downloadAllDocuments = async (scan: Scan) => {
+    if (!scan.documents || scan.documents.length === 0) return;
+    
+    setIsDownloading(true);
+    
+    try {
+      // Download each document sequentially
+      for (const doc of scan.documents) {
+        const { data, error } = await supabase.storage
+          .from('scans')
+          .download(doc.file_path);
+
+        if (error) {
+          console.error(`Failed to download ${doc.file_name}:`, error);
+          continue;
+        }
+
+        // Create download for each file
+        const url = window.URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = doc.file_name;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Small delay between downloads
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      toast({
+        title: "Downloads Started",
+        description: `All ${scan.documents.length} documents are being downloaded.`,
+      });
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed", 
+        description: error.message || "Failed to download documents.",
         variant: "destructive",
       });
     } finally {
@@ -360,7 +408,7 @@ const MyScansPage = () => {
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => downloadScan(scan)}
+                            onClick={() => downloadAllDocuments(scan)}
                             disabled={isDownloading}
                           >
                             <Download className="w-4 h-4 mr-2" />
@@ -563,7 +611,7 @@ const MyScansPage = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
+                      <Tag className="w-5 h-5" />
                       AI Tags
                     </CardTitle>
                   </CardHeader>
@@ -573,6 +621,54 @@ const MyScansPage = () => {
                         <Badge key={index} variant="secondary">
                           {tag}
                         </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Documents */}
+              {selectedScan.documents && selectedScan.documents.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Documents ({selectedScan.documents.length})
+                      </span>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => downloadAllDocuments(selectedScan)}
+                        disabled={isDownloading}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download All
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {selectedScan.documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-5 h-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{doc.file_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {doc.file_type} • {doc.file_size ? `${Math.round(doc.file_size / 1024)} KB` : 'Unknown size'}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => downloadDocument(doc.file_path, doc.file_name)}
+                            disabled={isDownloading}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -622,12 +718,12 @@ const MyScansPage = () => {
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
                 <Button 
-                  onClick={() => downloadScan(selectedScan)}
+                  onClick={() => downloadAllDocuments(selectedScan)}
                   disabled={isDownloading}
                   className="flex-1"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  {isDownloading ? "Downloading..." : "Download Original"}
+                  {isDownloading ? "Downloading..." : "Download All Files"}
                 </Button>
                 <Button 
                   variant="outline"

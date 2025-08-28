@@ -200,14 +200,6 @@ const ScanPage = () => {
         uploadedDocuments.push(docData);
       }
 
-      // Update main scan with first document's path
-      if (uploadedDocuments.length > 0) {
-        await supabase
-          .from('scans')
-          .update({ file_path: uploadedDocuments[0].file_path })
-          .eq('id', scanData.id);
-      }
-
       setSavedScan(scanData);
       setSavedDocuments(uploadedDocuments);
       
