@@ -466,7 +466,11 @@ const MyScansPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => shareScan(scan)}>
                             <Share2 className="w-4 h-4 mr-2" />
-                            Share
+                            Share Files
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => shareAsPdf(scan)}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Share as PDF
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => deleteScan(scan.id)}
