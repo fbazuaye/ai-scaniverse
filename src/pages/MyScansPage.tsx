@@ -30,7 +30,8 @@ import {
   TrendingUp,
   Clock,
   Copy,
-  MessageCircle
+  MessageCircle,
+  Share2
 } from "lucide-react";
 import {
   DropdownMenu,
