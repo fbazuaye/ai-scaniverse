@@ -146,6 +146,29 @@ const ScanPage = () => {
 
     setIsSaving(true);
     try {
+      // If offline, save to IndexedDB for later sync
+      if (!isOnline) {
+        const storableFiles = await Promise.all(
+          selectedFiles.map(f => fileToStorable(f.file))
+        );
+        const pendingScan: PendingScan = {
+          id: Math.random().toString(36).substr(2, 12),
+          title,
+          description,
+          scanType,
+          files: storableFiles,
+          createdAt: Date.now(),
+          status: "pending",
+        };
+        await saveScanOffline(pendingScan);
+        toast({
+          title: "Saved Offline",
+          description: `${selectedFiles.length} file(s) saved locally. They'll sync when you're back online.`,
+        });
+        resetScan();
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -164,7 +187,7 @@ const ScanPage = () => {
           title,
           description,
           content_type: scanType,
-          file_path: '', // Will be updated with first document's path
+          file_path: '',
         })
         .select()
         .single();
@@ -179,14 +202,12 @@ const ScanPage = () => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
         
-        // Upload file to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('scans')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
-        // Create document record
         const { data: docData, error: docError } = await supabase
           .from('scan_documents')
           .insert({
@@ -213,6 +234,32 @@ const ScanPage = () => {
 
     } catch (error: any) {
       console.error('Save error:', error);
+      // If network error, fall back to offline save
+      if (!navigator.onLine || error.message?.includes('fetch') || error.message?.includes('network')) {
+        try {
+          const storableFiles = await Promise.all(
+            selectedFiles.map(f => fileToStorable(f.file))
+          );
+          const pendingScan: PendingScan = {
+            id: Math.random().toString(36).substr(2, 12),
+            title,
+            description,
+            scanType,
+            files: storableFiles,
+            createdAt: Date.now(),
+            status: "pending",
+          };
+          await saveScanOffline(pendingScan);
+          toast({
+            title: "Saved Offline",
+            description: "Network unavailable. Scan saved locally for later sync.",
+          });
+          resetScan();
+          return;
+        } catch {
+          // Fall through to error toast
+        }
+      }
       toast({
         title: "Save Failed",
         description: error.message || "Failed to save scan.",
