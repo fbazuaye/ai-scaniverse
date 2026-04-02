@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { shareCombinedPdf } from "@/lib/pdfShare";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,8 @@ import {
   Clock,
   Copy,
   MessageCircle,
-  Share2
+  Share2,
+  FileDown
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -303,6 +305,14 @@ const MyScansPage = () => {
     }
   };
 
+  const shareAsPdf = async (scan: Scan) => {
+    if (!scan.documents || scan.documents.length === 0) {
+      toast({ title: "No documents", description: "This scan has no documents to share.", variant: "destructive" });
+      return;
+    }
+    await shareCombinedPdf(scan.documents, scan.title, toast);
+  };
+
   const filteredScans = scans.filter(scan => {
     const matchesSearch = 
       scan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -456,7 +466,11 @@ const MyScansPage = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => shareScan(scan)}>
                             <Share2 className="w-4 h-4 mr-2" />
-                            Share
+                            Share Files
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => shareAsPdf(scan)}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Share as PDF
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => deleteScan(scan.id)}
@@ -799,7 +813,14 @@ const MyScansPage = () => {
                   onClick={() => shareScan(selectedScan)}
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  Share Files
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => shareAsPdf(selectedScan)}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Share as PDF
                 </Button>
                 <Button 
                   variant="outline"

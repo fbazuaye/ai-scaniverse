@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { shareCombinedPdf } from "@/lib/pdfShare";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
   X,
   Plus,
   Share2,
+  FileDown,
   Wifi,
   WifiOff,
   RefreshCw
@@ -378,6 +380,10 @@ const ScanPage = () => {
     }
   };
 
+  const shareAsPdf = async () => {
+    await shareCombinedPdf(savedDocuments, title, toast);
+  };
+
   const resetScan = () => {
     selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
     setSelectedFiles([]);
@@ -640,7 +646,14 @@ const ScanPage = () => {
                     onClick={shareScan}
                   >
                     <Share2 className="w-4 h-4 mr-2" />
-                    Share
+                    Share Files
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={shareAsPdf}
+                  >
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Share as PDF
                   </Button>
                   <Button
                     variant="outline"
@@ -756,7 +769,14 @@ const ScanPage = () => {
                   onClick={shareScan}
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  Share Files
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={shareAsPdf}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Share as PDF
                 </Button>
                 <Button 
                   variant="outline"
