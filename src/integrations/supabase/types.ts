@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          access_granted: boolean
+          access_method: string
+          card_id: string
+          driver_id: string | null
+          error_message: string | null
+          id: string
+          timestamp: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          access_granted: boolean
+          access_method: string
+          card_id: string
+          driver_id?: string | null
+          error_message?: string | null
+          id?: string
+          timestamp?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          access_granted?: boolean
+          access_method?: string
+          card_id?: string
+          driver_id?: string | null
+          error_message?: string | null
+          id?: string
+          timestamp?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           api_key: string
@@ -124,27 +172,195 @@ export type Database = {
         }
         Relationships: []
       }
+      career_goals: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          description: string | null
+          id: string
+          milestones: Json | null
+          progress: number | null
+          status: string | null
+          target_company: string | null
+          target_position: string | null
+          target_salary: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          milestones?: Json | null
+          progress?: number | null
+          status?: string | null
+          target_company?: string | null
+          target_position?: string | null
+          target_salary?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          milestones?: Json | null
+          progress?: number | null
+          status?: string | null
+          target_company?: string | null
+          target_position?: string | null
+          target_salary?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          company: string | null
+          connection_strength: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contact_date: string | null
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          position: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          connection_strength?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          connection_strength?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cover_letters: {
+        Row: {
+          company_name: string
+          content: string
+          created_at: string
+          id: string
+          job_description: string | null
+          position_title: string
+          status: string | null
+          title: string
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          content: string
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          position_title: string
+          status?: string | null
+          title: string
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          position_title?: string
+          status?: string | null
+          title?: string
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           embedding: string | null
           id: string
           metadata: Json | null
           pageContent: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           embedding?: string | null
           id?: string
           metadata?: Json | null
           pageContent?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           embedding?: string | null
           id?: string
           metadata?: Json | null
           pageContent?: string | null
-          user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      drivers: {
+        Row: {
+          created_at: string | null
+          email: string
+          employee_id: string
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          employee_id: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          employee_id?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -241,6 +457,357 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_preparations: {
+        Row: {
+          answers: Json | null
+          company_name: string
+          created_at: string
+          id: string
+          interview_date: string | null
+          interview_type: string | null
+          notes: string | null
+          position_title: string
+          preparation_status: string | null
+          questions: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          company_name: string
+          created_at?: string
+          id?: string
+          interview_date?: string | null
+          interview_type?: string | null
+          notes?: string | null
+          position_title: string
+          preparation_status?: string | null
+          questions?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          interview_date?: string | null
+          interview_type?: string | null
+          notes?: string | null
+          position_title?: string
+          preparation_status?: string | null
+          questions?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          application_date: string | null
+          company_name: string
+          created_at: string
+          id: string
+          job_url: string | null
+          location: string | null
+          notes: string | null
+          position_title: string
+          salary_range: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_date?: string | null
+          company_name: string
+          created_at?: string
+          id?: string
+          job_url?: string | null
+          location?: string | null
+          notes?: string | null
+          position_title: string
+          salary_range?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_date?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          job_url?: string | null
+          location?: string | null
+          notes?: string | null
+          position_title?: string
+          salary_range?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_matches: {
+        Row: {
+          application_status: string | null
+          company_name: string
+          created_at: string
+          id: string
+          job_description: string | null
+          job_title: string
+          job_url: string | null
+          location: string | null
+          match_score: number | null
+          matching_skills: string[] | null
+          missing_skills: string[] | null
+          salary_range: string | null
+          saved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          application_status?: string | null
+          company_name: string
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          job_title: string
+          job_url?: string | null
+          location?: string | null
+          match_score?: number | null
+          matching_skills?: string[] | null
+          missing_skills?: string[] | null
+          salary_range?: string | null
+          saved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          application_status?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          job_title?: string
+          job_url?: string | null
+          location?: string | null
+          match_score?: number | null
+          matching_skills?: string[] | null
+          missing_skills?: string[] | null
+          salary_range?: string | null
+          saved_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_paths: {
+        Row: {
+          completed_resources: string[] | null
+          created_at: string
+          current_level: number | null
+          estimated_hours: number | null
+          id: string
+          learning_resources: Json | null
+          progress: number | null
+          skill_name: string
+          status: string | null
+          target_level: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_resources?: string[] | null
+          created_at?: string
+          current_level?: number | null
+          estimated_hours?: number | null
+          id?: string
+          learning_resources?: Json | null
+          progress?: number | null
+          skill_name: string
+          status?: string | null
+          target_level?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_resources?: string[] | null
+          created_at?: string
+          current_level?: number | null
+          estimated_hours?: number | null
+          id?: string
+          learning_resources?: Json | null
+          progress?: number | null
+          skill_name?: string
+          status?: string | null
+          target_level?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      motivational_content: {
+        Row: {
+          category: string | null
+          content: string
+          content_type: string
+          created_at: string
+          id: string
+          is_favorite: boolean | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          content_type: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      motivational_quotes: {
+        Row: {
+          author: string | null
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          quote_text: string
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          quote_text: string
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          quote_text?: string
+        }
+        Relationships: []
+      }
+      networking_contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contact_date: string | null
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          relationship_type: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          relationship_type?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          relationship_type?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nfc_cards: {
+        Row: {
+          card_id: string
+          created_at: string | null
+          driver_id: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          is_revoked: boolean | null
+          master_key_version: number
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          card_id: string
+          created_at?: string | null
+          driver_id?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_revoked?: boolean | null
+          master_key_version?: number
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          card_id?: string
+          created_at?: string | null
+          driver_id?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_revoked?: boolean | null
+          master_key_version?: number
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfc_cards_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfc_cards_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfc_logs: {
         Row: {
           action_type: string
@@ -268,12 +835,136 @@ export type Database = {
         }
         Relationships: []
       }
+      nfc_metadata: {
+        Row: {
+          created_at: string
+          driver_id: string | null
+          encrypted_payload: string
+          expiry_date: string | null
+          id: string
+          is_active: boolean
+          last_scanned_at: string | null
+          scan_count: number
+          tag_uid: string
+          updated_at: string
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          driver_id?: string | null
+          encrypted_payload: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_scanned_at?: string | null
+          scan_count?: number
+          tag_uid: string
+          updated_at?: string
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string | null
+          encrypted_payload?: string
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_scanned_at?: string | null
+          scan_count?: number
+          tag_uid?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: []
+      }
+      nfc_operations: {
+        Row: {
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          operation_type: string
+          success: boolean
+          tag_uid: string | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          operation_type: string
+          success?: boolean
+          tag_uid?: string | null
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          operation_type?: string
+          success?: boolean
+          tag_uid?: string | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          github_url: string | null
+          id: string
+          image_urls: string[] | null
+          is_featured: boolean | null
+          project_url: string | null
+          technologies: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          github_url?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_featured?: boolean | null
+          project_url?: string | null
+          technologies?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          github_url?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_featured?: boolean | null
+          project_url?: string | null
+          technologies?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          role: string
           updated_at: string
         }
         Insert: {
@@ -281,6 +972,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          role?: string
           updated_at?: string
         }
         Update: {
@@ -288,7 +980,125 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          role?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      public_search_history: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: unknown
+          query: string
+          response: string
+          session_id: string | null
+          sources: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          query: string
+          response: string
+          session_id?: string | null
+          sources?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          query?: string
+          response?: string
+          session_id?: string | null
+          sources?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      resumes: {
+        Row: {
+          ats_score: number | null
+          content: Json
+          created_at: string
+          file_url: string | null
+          id: string
+          is_primary: boolean | null
+          last_analyzed_at: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ats_score?: number | null
+          content?: Json
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_primary?: boolean | null
+          last_analyzed_at?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ats_score?: number | null
+          content?: Json
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          is_primary?: boolean | null
+          last_analyzed_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      salary_insights: {
+        Row: {
+          created_at: string
+          currency: string | null
+          data_source: string | null
+          experience_level: string
+          id: string
+          last_updated: string | null
+          location: string
+          position_title: string
+          salary_max: number | null
+          salary_min: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          data_source?: string | null
+          experience_level: string
+          id?: string
+          last_updated?: string | null
+          location: string
+          position_title: string
+          salary_max?: number | null
+          salary_min?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          data_source?: string | null
+          experience_level?: string
+          id?: string
+          last_updated?: string | null
+          location?: string
+          position_title?: string
+          salary_max?: number | null
+          salary_min?: number | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -432,6 +1242,75 @@ export type Database = {
         }
         Relationships: []
       }
+      skills: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          proficiency_level: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          proficiency_level?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          proficiency_level?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skills_assessments: {
+        Row: {
+          assessment_type: string | null
+          certification_url: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          proficiency_level: number | null
+          skill_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_type?: string | null
+          certification_url?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          proficiency_level?: number | null
+          skill_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_type?: string | null
+          certification_url?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          proficiency_level?: number | null
+          skill_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       staged_images: {
         Row: {
           created_at: string
@@ -529,7 +1408,7 @@ export type Database = {
         Row: {
           action: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           timestamp: string | null
           user_agent: string | null
           user_id: string
@@ -537,7 +1416,7 @@ export type Database = {
         Insert: {
           action: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           timestamp?: string | null
           user_agent?: string | null
           user_id: string
@@ -545,7 +1424,7 @@ export type Database = {
         Update: {
           action?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           timestamp?: string | null
           user_agent?: string | null
           user_id?: string
@@ -612,17 +1491,46 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          license_plate: string
+          model: string
+          name: string
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          license_plate: string
+          model?: string
+          name: string
+          updated_at?: string | null
+          year?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          license_plate?: string
+          model?: string
+          name?: string
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      binary_quantize: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
       check_google_token_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           expires_at: string
           has_access_token: boolean
@@ -633,14 +1541,8 @@ export type Database = {
           updated_at: string
         }[]
       }
-      decrypt_token: {
-        Args: { encrypted_token: string }
-        Returns: string
-      }
-      encrypt_token: {
-        Args: { token_value: string }
-        Returns: string
-      }
+      decrypt_token: { Args: { encrypted_token: string }; Returns: string }
+      encrypt_token: { Args: { token_value: string }; Returns: string }
       get_user_google_tokens: {
         Args: { target_user_id: string }
         Returns: {
@@ -648,38 +1550,6 @@ export type Database = {
           expires_at: string
           refresh_token: string
         }[]
-      }
-      halfvec_avg: {
-        Args: { "": number[] }
-        Returns: unknown
-      }
-      halfvec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      halfvec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      hnsw_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_sparsevec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnswhandler: {
-        Args: { "": unknown }
-        Returns: unknown
       }
       insert_google_credentials: {
         Args: {
@@ -691,42 +1561,7 @@ export type Database = {
         }
         Returns: string
       }
-      ivfflat_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflathandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      l2_norm: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: number
-      }
-      l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
-      log_token_access: {
-        Args: { action_type: string }
-        Returns: undefined
-      }
-      sparsevec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      sparsevec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      sparsevec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
+      log_token_access: { Args: { action_type: string }; Returns: undefined }
       update_google_credentials: {
         Args: {
           p_access_token?: string
@@ -750,30 +1585,12 @@ export type Database = {
           usage_count: number
           user_id: string | null
         }[]
-      }
-      vector_avg: {
-        Args: { "": number[] }
-        Returns: string
-      }
-      vector_dims: {
-        Args: { "": string } | { "": unknown }
-        Returns: number
-      }
-      vector_norm: {
-        Args: { "": string }
-        Returns: number
-      }
-      vector_out: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      vector_send: {
-        Args: { "": string }
-        Returns: string
-      }
-      vector_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
+        SetofOptions: {
+          from: "*"
+          to: "api_keys"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
