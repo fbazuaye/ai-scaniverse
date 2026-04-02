@@ -769,7 +769,14 @@ const ScanPage = () => {
                   onClick={shareScan}
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  Share Files
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={shareAsPdf}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Share as PDF
                 </Button>
                 <Button 
                   variant="outline"
