@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Camera, Scan, FileText, Home } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Camera, Scan, FileText, Home, ArrowLeft } from 'lucide-react';
 import Footer from '@/components/Footer';
 
 const AuthPage = () => {
@@ -18,7 +19,6 @@ const AuthPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
-  const { supabase } = await import('@/integrations/supabase/client');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -30,9 +30,7 @@ const AuthPage = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     const { error } = await signIn(email, password);
-
     if (error) {
       toast({
         title: "Sign in failed",
@@ -47,16 +45,13 @@ const AuthPage = () => {
         description: "You have successfully signed in.",
       });
     }
-
     setIsLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     const { error } = await signUp(email, password, fullName);
-
     if (error) {
       if (error.message.includes("User already registered")) {
         toast({
@@ -77,13 +72,41 @@ const AuthPage = () => {
         description: "Please check your email to verify your account.",
       });
     }
+    setIsLoading(false);
+  };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Reset link sent!",
+        description: "Check your email for a password reset link.",
+      });
+      setShowForgotPassword(false);
+    }
     setIsLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
-      {/* Header with Back to Home button */}
       <header className="flex justify-start p-4 sm:p-6">
         <Button 
           variant="ghost" 
@@ -99,38 +122,36 @@ const AuthPage = () => {
 
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md lg:max-w-lg space-y-6">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="p-2 sm:p-3 bg-primary/10 rounded-full">
-              <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <div className="text-center space-y-2">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="p-2 sm:p-3 bg-primary/10 rounded-full">
+                <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">AI ScanPro</h1>
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">AI ScanPro</h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto">
+              Access your AI-powered document and image scanner
+            </p>
           </div>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto">
-            Access your AI-powered document and image scanner
-          </p>
-        </div>
 
-        <Card>
-          <CardHeader className="space-y-1 p-4 sm:p-6">
-            <CardTitle className="text-xl sm:text-2xl text-center">Welcome</CardTitle>
-            <CardDescription className="text-center text-sm sm:text-base">
-              Sign in to your account or create a new one
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
+          <Card>
+            <CardHeader className="space-y-1 p-4 sm:p-6">
+              <CardTitle className="text-xl sm:text-2xl text-center">
+                {showForgotPassword ? 'Reset Password' : 'Welcome'}
+              </CardTitle>
+              <CardDescription className="text-center text-sm sm:text-base">
+                {showForgotPassword 
+                  ? 'Enter your email to receive a password reset link'
+                  : 'Sign in to your account or create a new one'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6">
+              {showForgotPassword ? (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="reset-email">Email</Label>
                     <Input
-                      id="email"
+                      id="reset-email"
                       type="email"
                       placeholder="Enter your email"
                       value={email}
@@ -138,84 +159,127 @@ const AuthPage = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
+                    Send Reset Link
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={() => setShowForgotPassword(false)}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Sign In
                   </Button>
                 </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="Enter your full name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Create a password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Account
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+              ) : (
+                <Tabs defaultValue="signin" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="signin">Sign In</TabsTrigger>
+                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="signin">
+                    <form onSubmit={handleSignIn} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Sign In
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="w-full text-sm text-muted-foreground"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot your password?
+                      </Button>
+                    </form>
+                  </TabsContent>
+                  
+                  <TabsContent value="signup">
+                    <form onSubmit={handleSignUp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Create a password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Create Account
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+          </Card>
 
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center space-x-4 sm:space-x-6 lg:space-x-8">
-            <div className="text-center">
-              <Scan className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
-              <p className="text-xs sm:text-sm text-muted-foreground">Smart Scanning</p>
-            </div>
-            <div className="text-center">
-              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
-              <p className="text-xs sm:text-sm text-muted-foreground">AI Analysis</p>
-            </div>
-            <div className="text-center">
-              <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
-              <p className="text-xs sm:text-sm text-muted-foreground">Enhancement</p>
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center space-x-4 sm:space-x-6 lg:space-x-8">
+              <div className="text-center">
+                <Scan className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">Smart Scanning</p>
+              </div>
+              <div className="text-center">
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">AI Analysis</p>
+              </div>
+              <div className="text-center">
+                <Camera className="h-6 w-6 sm:h-8 sm:w-8 text-primary mx-auto mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">Enhancement</p>
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
       
