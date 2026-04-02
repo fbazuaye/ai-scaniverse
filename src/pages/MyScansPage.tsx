@@ -454,6 +454,10 @@ const MyScansPage = () => {
                             <Download className="w-4 h-4 mr-2" />
                             {isDownloading ? "Downloading..." : "Export"}
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => shareScan(scan)}>
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Share
+                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => deleteScan(scan.id)}
                             className="text-destructive"
