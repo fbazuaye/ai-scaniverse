@@ -34,6 +34,7 @@ import {
   X,
   Plus,
   Share2,
+  FileDown,
   Wifi,
   WifiOff,
   RefreshCw
