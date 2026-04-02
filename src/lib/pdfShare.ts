@@ -116,6 +116,20 @@ function getImageDimensions(
 }
 
 /**
+ * Download a File object by creating a temporary anchor element.
+ */
+function downloadFile(file: File) {
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+/**
  * Share a combined PDF via Web Share API, or download as fallback.
  */
 export async function shareCombinedPdf(
@@ -128,27 +142,28 @@ export async function shareCombinedPdf(
 
     const pdfFile = await createCombinedPdf(documents, title);
 
-    if (navigator.share && navigator.canShare?.({ files: [pdfFile] })) {
-      await navigator.share({
-        title: title,
-        text: `Shared scan: ${title}`,
-        files: [pdfFile],
-      });
-    } else {
-      // Fallback: download the PDF
-      const url = URL.createObjectURL(pdfFile);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = pdfFile.name;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+    // Attempt native share
+    let shared = false;
+    if (navigator.share) {
+      try {
+        const shareData: ShareData = { title, text: `Shared scan: ${title}` };
+        if (navigator.canShare?.({ files: [pdfFile] })) {
+          shareData.files = [pdfFile];
+        }
+        await navigator.share(shareData);
+        shared = true;
+      } catch (shareErr: any) {
+        if (shareErr.name === "AbortError") return; // user cancelled
+        // NotAllowedError / Permission denied / other → fall through to download
+        console.warn("Native share failed, falling back to download:", shareErr.message);
+      }
+    }
+
+    if (!shared) {
+      downloadFile(pdfFile);
       toastFn({ title: "PDF Downloaded", description: `${pdfFile.name} has been downloaded.` });
     }
   } catch (err: any) {
-    if (err.name !== "AbortError") {
-      toastFn({ title: "Share failed", description: err.message || "Failed to create PDF.", variant: "destructive" });
-    }
+    toastFn({ title: "PDF creation failed", description: err.message || "Failed to create PDF.", variant: "destructive" });
   }
 }

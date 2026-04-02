@@ -347,7 +347,8 @@ const ScanPage = () => {
       ? `${title}\n\n${scanResults.map((r, i) => `Document ${i + 1}:\n${r.aiSummary || r.extractedText || 'No text extracted'}`).join('\n\n')}`
       : `Scanned documents: ${title}${description ? '\n' + description : ''}`;
 
-    // Try to share files via Web Share API Level 2
+    let shared = false;
+
     if (navigator.share) {
       try {
         const filesToShare: File[] = [];
@@ -358,25 +359,27 @@ const ScanPage = () => {
           }
         }
 
-        const shareData: ShareData = {
-          title: title,
-          text: shareText,
-        };
-
+        const shareData: ShareData = { title, text: shareText };
         if (filesToShare.length > 0 && navigator.canShare?.({ files: filesToShare })) {
           shareData.files = filesToShare;
         }
 
         await navigator.share(shareData);
+        shared = true;
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          toast({ title: "Share failed", description: err.message, variant: "destructive" });
-        }
+        if (err.name === 'AbortError') return; // user cancelled
+        console.warn("Native share failed, falling back:", err.message);
       }
-    } else {
+    }
+
+    if (!shared) {
       // Fallback: copy text to clipboard
-      await navigator.clipboard.writeText(shareText);
-      toast({ title: "Copied to clipboard", description: "Share text copied. You can paste it in any app." });
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast({ title: "Copied to clipboard", description: "Share text copied. You can paste it in any app." });
+      } catch {
+        toast({ title: "Share unavailable", description: "Could not share or copy text.", variant: "destructive" });
+      }
     }
   };
 
