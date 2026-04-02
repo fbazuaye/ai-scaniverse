@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { saveScanOffline, fileToStorable, isOnline as checkOnline, type PendingScan } from "@/lib/offlineSync";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { 
   Camera, 
   Upload, 
