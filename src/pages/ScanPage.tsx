@@ -751,6 +751,13 @@ const ScanPage = () => {
                   <Download className="w-4 h-4 mr-2" />
                   View My Scans
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={shareScan}
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
                 <Button 
                   variant="outline"
                   onClick={resetScan}
