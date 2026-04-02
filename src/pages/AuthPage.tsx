@@ -15,8 +15,10 @@ const AuthPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
+  const { supabase } = await import('@/integrations/supabase/client');
   const { toast } = useToast();
 
   useEffect(() => {
