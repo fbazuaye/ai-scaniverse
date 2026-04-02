@@ -29,7 +29,8 @@ import {
   Zap,
   TrendingUp,
   Clock,
-  Copy
+  Copy,
+  MessageCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import DocumentChat from "@/components/DocumentChat";
 
 interface ScanDocument {
   id: string;
@@ -89,6 +91,7 @@ const MyScansPage = () => {
   const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
   const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     fetchScans();
@@ -715,6 +718,31 @@ const MyScansPage = () => {
                 </Card>
               )}
 
+              {/* Document Chat */}
+              {(selectedScan.extracted_text || selectedScan.ai_summary) && (
+                isChatOpen ? (
+                  <DocumentChat
+                    documentContext={{
+                      title: selectedScan.title,
+                      category: selectedScan.category,
+                      extractedText: selectedScan.extracted_text,
+                      aiSummary: selectedScan.ai_summary,
+                      aiTags: selectedScan.ai_tags,
+                    }}
+                    onClose={() => setIsChatOpen(false)}
+                  />
+                ) : (
+                  <Button
+                    onClick={() => setIsChatOpen(true)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat with AI about this document
+                  </Button>
+                )
+              )}
+
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
                 <Button 
@@ -727,7 +755,7 @@ const MyScansPage = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setIsViewDetailsOpen(false)}
+                  onClick={() => { setIsViewDetailsOpen(false); setIsChatOpen(false); }}
                   className="flex-1"
                 >
                   <X className="w-4 h-4 mr-2" />
