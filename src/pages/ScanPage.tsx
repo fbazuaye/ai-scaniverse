@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { saveScanOffline, fileToStorable, isOnline as checkOnline, type PendingScan } from "@/lib/offlineSync";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { 
   Camera, 
   Upload, 
@@ -29,7 +31,10 @@ import {
   Wand2,
   Home,
   X,
-  Plus
+  Plus,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -77,6 +82,7 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isOnline, pendingCount, isSyncing, doSync } = useOfflineSync();
   
   const scanType = searchParams.get("type") || "document";
   const [isSaving, setIsSaving] = useState(false);
@@ -143,6 +149,29 @@ const ScanPage = () => {
 
     setIsSaving(true);
     try {
+      // If offline, save to IndexedDB for later sync
+      if (!isOnline) {
+        const storableFiles = await Promise.all(
+          selectedFiles.map(f => fileToStorable(f.file))
+        );
+        const pendingScan: PendingScan = {
+          id: Math.random().toString(36).substr(2, 12),
+          title,
+          description,
+          scanType,
+          files: storableFiles,
+          createdAt: Date.now(),
+          status: "pending",
+        };
+        await saveScanOffline(pendingScan);
+        toast({
+          title: "Saved Offline",
+          description: `${selectedFiles.length} file(s) saved locally. They'll sync when you're back online.`,
+        });
+        resetScan();
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -161,7 +190,7 @@ const ScanPage = () => {
           title,
           description,
           content_type: scanType,
-          file_path: '', // Will be updated with first document's path
+          file_path: '',
         })
         .select()
         .single();
@@ -176,14 +205,12 @@ const ScanPage = () => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
         
-        // Upload file to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('scans')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
-        // Create document record
         const { data: docData, error: docError } = await supabase
           .from('scan_documents')
           .insert({
@@ -210,6 +237,32 @@ const ScanPage = () => {
 
     } catch (error: any) {
       console.error('Save error:', error);
+      // If network error, fall back to offline save
+      if (!navigator.onLine || error.message?.includes('fetch') || error.message?.includes('network')) {
+        try {
+          const storableFiles = await Promise.all(
+            selectedFiles.map(f => fileToStorable(f.file))
+          );
+          const pendingScan: PendingScan = {
+            id: Math.random().toString(36).substr(2, 12),
+            title,
+            description,
+            scanType,
+            files: storableFiles,
+            createdAt: Date.now(),
+            status: "pending",
+          };
+          await saveScanOffline(pendingScan);
+          toast({
+            title: "Saved Offline",
+            description: "Network unavailable. Scan saved locally for later sync.",
+          });
+          resetScan();
+          return;
+        } catch {
+          // Fall through to error toast
+        }
+      }
       toast({
         title: "Save Failed",
         description: error.message || "Failed to save scan.",
@@ -318,6 +371,33 @@ const ScanPage = () => {
           </div>
         </div>
       </header>
+
+      {/* Offline / Sync Status Banner */}
+      {(!isOnline || pendingCount > 0) && (
+        <div className={`px-4 py-2 flex items-center justify-between text-sm ${
+          !isOnline ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+        }`}>
+          <div className="flex items-center gap-2">
+            {!isOnline ? (
+              <>
+                <WifiOff className="w-4 h-4" />
+                <span>You're offline — scans will be saved locally</span>
+              </>
+            ) : (
+              <>
+                <Wifi className="w-4 h-4" />
+                <span>{pendingCount} offline scan(s) pending sync</span>
+              </>
+            )}
+          </div>
+          {isOnline && pendingCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={doSync} disabled={isSyncing}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync Now"}
+            </Button>
+          )}
+        </div>
+      )}
 
       <main className="px-4 sm:px-6 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
