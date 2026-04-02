@@ -380,6 +380,10 @@ const ScanPage = () => {
     }
   };
 
+  const shareAsPdf = async () => {
+    await shareCombinedPdf(savedDocuments, title, toast);
+  };
+
   const resetScan = () => {
     selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
     setSelectedFiles([]);
