@@ -4,11 +4,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -19,12 +18,10 @@ serve(async (req) => {
     
     console.log('Processing scan request:', { filePath, contentType, title });
 
-    // Validate required parameters
     if (!filePath) {
       throw new Error('File path is required');
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -34,7 +31,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the uploaded file
     console.log('Downloading file from storage...');
     const { data: fileData, error: fileError } = await supabase.storage
       .from('scans')
@@ -45,14 +41,11 @@ serve(async (req) => {
       throw new Error(`Failed to download file: ${fileError.message}`);
     }
 
-    // Convert file to base64
     console.log('Converting file to base64...');
     const fileBuffer = await fileData.arrayBuffer();
-    
-    // Use a more memory-efficient approach for base64 conversion
     const uint8Array = new Uint8Array(fileBuffer);
     let binary = '';
-    const chunkSize = 0x8000; // 32KB chunks
+    const chunkSize = 0x8000;
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
@@ -61,26 +54,12 @@ serve(async (req) => {
     
     const fileBase64 = btoa(binary);
 
-    // Process with OpenAI Vision for OCR and analysis
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Sending request to OpenAI...');
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
-        max_completion_tokens: 2000,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an advanced AI assistant that provides comprehensive document and image analysis. Analyze the provided image/document and extract all relevant information.
+    const systemPrompt = `You are an advanced AI assistant that provides comprehensive document and image analysis. Analyze the provided image/document and extract all relevant information.
 
 Return your analysis in this exact JSON format:
 {
@@ -113,8 +92,19 @@ Return your analysis in this exact JSON format:
     "textRegions": 1,
     "estimatedWords": 100
   }
-}`
-          },
+}`;
+
+    console.log('Sending request to Lovable AI Gateway...');
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
           {
             role: 'user',
             content: [
@@ -135,25 +125,40 @@ Return your analysis in this exact JSON format:
       })
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
+    if (!aiResponse.ok) {
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later.", success: false }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds in Settings > Workspace > Usage.", success: false }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const errorText = await aiResponse.text();
+      console.error('AI Gateway error:', aiResponse.status, errorText);
+      throw new Error(`AI Gateway error: ${aiResponse.status} - ${errorText}`);
     }
 
-    const openaiResult = await openaiResponse.json();
-    console.log('OpenAI response received');
+    const aiResult = await aiResponse.json();
+    console.log('AI response received');
 
-    if (!openaiResult.choices || !openaiResult.choices[0]) {
-      throw new Error('Invalid OpenAI response format');
+    if (!aiResult.choices || !aiResult.choices[0]) {
+      throw new Error('Invalid AI response format');
     }
 
     let aiAnalysis;
     try {
-      aiAnalysis = JSON.parse(openaiResult.choices[0].message.content);
+      let content = aiResult.choices[0].message.content;
+      // Strip markdown code fences if present
+      content = content.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      aiAnalysis = JSON.parse(content);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.error('Raw content:', openaiResult.choices[0].message.content);
+      console.error('Raw content:', aiResult.choices[0].message.content);
       throw new Error('Failed to parse AI analysis response');
     }
 
@@ -173,13 +178,11 @@ Return your analysis in this exact JSON format:
   } catch (error: any) {
     console.error('Error in process-scan function:', error);
     
-    const errorResponse = {
+    return new Response(JSON.stringify({
       error: error.message || 'Unknown error occurred',
       success: false,
       timestamp: new Date().toISOString()
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
