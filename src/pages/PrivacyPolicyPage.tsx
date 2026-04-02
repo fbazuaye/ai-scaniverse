@@ -1,4 +1,4 @@
-import { ShieldCheck, Home, Lock, Database, Camera, RefreshCw } from "lucide-react";
+import { ShieldCheck, Home, Lock, Database, Camera, RefreshCw, Trash2, Baby, Globe, KeyRound, Scale, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,18 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const policySections = [
   {
-    title: "Information we collect",
+    title: "Data Safety Declaration",
+    icon: ShieldCheck,
+    content: [
+      "Email address — collected for authentication and account management. Not shared with third parties. Encrypted in transit via TLS/HTTPS.",
+      "Photos and documents — collected when you scan or upload content for processing. Stored securely and not shared with third parties.",
+      "Device identifiers — collected for session management, crash reporting, and service improvement. Not shared with third parties.",
+      "Usage data — collected to improve app performance and reliability. Aggregated and anonymized where possible. Not sold or shared.",
+      "All data transmitted between your device and our servers is encrypted using TLS 1.2+ (HTTPS).",
+    ],
+  },
+  {
+    title: "Information We Collect",
     icon: Database,
     content: [
       "Account details you provide, such as your email address and profile information.",
@@ -16,8 +27,8 @@ const policySections = [
     ],
   },
   {
-    title: "How we use your information",
-    icon: ShieldCheck,
+    title: "How We Use Your Information",
+    icon: Database,
     content: [
       "To scan, organize, sync, display, export, and let you download your saved documents and images.",
       "To run AI-powered features you request, including OCR, summaries, document analysis, and chat-based Q&A.",
@@ -25,17 +36,70 @@ const policySections = [
     ],
   },
   {
-    title: "Permissions and Android privacy protections",
+    title: "Permissions & Android Privacy Protections",
     icon: Camera,
     content: [
-      "Camera and file access are used only when you choose to scan or upload content.",
-      "You can deny or revoke device permissions at any time in your browser or Android settings.",
-      "The app does not request background location, contacts, or call logs for core scanning features.",
-      "Sensitive document access is intended to be limited to the signed-in account that owns the content.",
+      "Camera — used solely for document and image scanning when you explicitly initiate a scan. No background camera access or capture occurs.",
+      "Storage/Files — used only to import documents you select and to export/download files you request. No bulk file access.",
+      "Internet — used for cloud sync, AI-powered analysis, authentication, and service updates.",
+      "This app does NOT access: location, contacts, phone/call logs, SMS, calendar, microphone, or any sensors not listed above.",
+      "You can deny or revoke any device permission at any time via your browser or Android/iOS system settings.",
     ],
   },
   {
-    title: "Storage, sharing, and security",
+    title: "Data Deletion Rights",
+    icon: Trash2,
+    content: [
+      "You have the right to request complete deletion of your account and all associated data at any time.",
+      "To delete your data: sign into the app, go to your account settings, and select 'Delete Account'. All scans, documents, profile data, and metadata will be permanently removed.",
+      "Alternatively, you may email privacy@livegig.co.uk with your account email and the subject line 'Data Deletion Request'. We will process your request within 30 days.",
+      "Once deleted, your data cannot be recovered. Exported or downloaded files on your device remain under your control.",
+    ],
+  },
+  {
+    title: "Children's Privacy (COPPA / GDPR-K)",
+    icon: Baby,
+    content: [
+      "AI ScanPro is not directed at children under the age of 13 (or 16 in the EU/EEA).",
+      "We do not knowingly collect personal information from children under these age thresholds.",
+      "If a parent or guardian becomes aware that their child has provided us with personal data, please contact us at privacy@livegig.co.uk and we will promptly delete such information.",
+      "If we discover that we have collected personal information from a child without parental consent, we will delete it immediately.",
+    ],
+  },
+  {
+    title: "Third-Party Services Disclosure",
+    icon: Globe,
+    content: [
+      "Supabase — used for user authentication, cloud database storage, and file/document storage. Privacy policy: https://supabase.com/privacy",
+      "AI/ML processing services — used to provide OCR, document summarization, tagging, and chat-based document analysis. Document content is sent for processing and not retained by the AI provider beyond the request.",
+      "No third-party advertising SDKs or ad trackers are used in this app.",
+      "We do not sell, trade, or rent your personal information to any third party.",
+    ],
+  },
+  {
+    title: "Data Encryption & Security Standards",
+    icon: KeyRound,
+    content: [
+      "All data in transit is encrypted using TLS 1.2+ (HTTPS) between your device and our servers.",
+      "Data at rest is encrypted where supported by our infrastructure providers (Supabase/cloud storage).",
+      "Authentication tokens are securely managed and never stored in plain text on the client.",
+      "We implement access controls and authenticated storage paths to minimize unauthorized access. However, no system can guarantee absolute security.",
+    ],
+  },
+  {
+    title: "Your Rights (GDPR / CCPA)",
+    icon: Scale,
+    content: [
+      "Right to Access — you may request a copy of all personal data we hold about you.",
+      "Right to Rectification — you may request correction of inaccurate personal data.",
+      "Right to Deletion — you may request deletion of your personal data (see Data Deletion Rights above).",
+      "Right to Data Portability — you may request your data in a machine-readable format.",
+      "Right to Opt-Out — California residents may opt out of any sale of personal information (we do not sell data).",
+      "To exercise any of these rights, contact us at privacy@livegig.co.uk.",
+    ],
+  },
+  {
+    title: "Storage, Sharing & Security",
     icon: Lock,
     content: [
       "Your content is stored using our connected infrastructure providers, including Supabase and integrated AI processing services needed to deliver requested features.",
@@ -45,12 +109,24 @@ const policySections = [
     ],
   },
   {
-    title: "Retention, updates, and contact",
+    title: "Data Retention Periods",
+    icon: Clock,
+    content: [
+      "Account data (email, profile) — retained until you delete your account.",
+      "Scans and documents — retained until you manually delete them or delete your account.",
+      "Offline queue data — stored locally and removed after successful sync to the cloud.",
+      "Usage and analytics data — retained in aggregated/anonymized form for up to 24 months for service improvement.",
+      "Upon account deletion, all associated personal data is permanently removed within 30 days.",
+    ],
+  },
+  {
+    title: "Policy Updates & Contact",
     icon: RefreshCw,
     content: [
-      "We keep information for as long as needed to operate the service, comply with legal obligations, and support your account history unless you delete it first.",
-      "We may update this Privacy Policy when features, legal requirements, or platform rules change.",
-      "For privacy requests or Google Play compliance details, use the official support contact you publish for AI ScanPro / LiveGig Ltd in your app listing.",
+      "We may update this Privacy Policy when features, legal requirements, or platform rules change. Material changes will be communicated via the app or email.",
+      "This policy is effective as of April 2, 2026.",
+      "For privacy inquiries, data requests, or Google Play compliance questions, contact: privacy@livegig.co.uk",
+      "Data Controller: LiveGig Ltd",
     ],
   },
 ];
