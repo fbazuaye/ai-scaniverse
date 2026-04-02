@@ -30,7 +30,8 @@ import {
   TrendingUp,
   Clock,
   Copy,
-  MessageCircle
+  MessageCircle,
+  Share2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -266,6 +267,42 @@ const MyScansPage = () => {
     });
   };
 
+  const shareScan = async (scan: Scan) => {
+    const shareText = `${scan.title}${scan.description ? '\n' + scan.description : ''}${scan.ai_summary ? '\n\nSummary: ' + scan.ai_summary : ''}`;
+
+    if (navigator.share) {
+      try {
+        const filesToShare: File[] = [];
+        if (scan.documents) {
+          for (const doc of scan.documents) {
+            const { data } = await supabase.storage.from('scans').download(doc.file_path);
+            if (data) {
+              filesToShare.push(new File([data], doc.file_name, { type: doc.file_type || 'application/octet-stream' }));
+            }
+          }
+        }
+
+        const shareData: ShareData = {
+          title: scan.title,
+          text: shareText,
+        };
+
+        if (filesToShare.length > 0 && navigator.canShare?.({ files: filesToShare })) {
+          shareData.files = filesToShare;
+        }
+
+        await navigator.share(shareData);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          toast({ title: "Share failed", description: err.message, variant: "destructive" });
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      toast({ title: "Copied to clipboard", description: "Share text copied. You can paste it in any app." });
+    }
+  };
+
   const filteredScans = scans.filter(scan => {
     const matchesSearch = 
       scan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -416,6 +453,10 @@ const MyScansPage = () => {
                           >
                             <Download className="w-4 h-4 mr-2" />
                             {isDownloading ? "Downloading..." : "Export"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => shareScan(scan)}>
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Share
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => deleteScan(scan.id)}
@@ -753,10 +794,16 @@ const MyScansPage = () => {
                   <Download className="w-4 h-4 mr-2" />
                   {isDownloading ? "Downloading..." : "Download All Files"}
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => shareScan(selectedScan)}
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
                 <Button 
                   variant="outline"
                   onClick={() => { setIsViewDetailsOpen(false); setIsChatOpen(false); }}
-                  className="flex-1"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Close
