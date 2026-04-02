@@ -32,6 +32,7 @@ import {
   Home,
   X,
   Plus,
+  Share2,
   Wifi,
   WifiOff,
   RefreshCw
