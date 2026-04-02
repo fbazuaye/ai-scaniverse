@@ -1,52 +1,43 @@
 
 
-## Fix: "Share failed — Permission denied" Error
+## Update Privacy Policy with Latest Android Privacy Protections
 
 ### Problem
+Google is flagging the app because the privacy policy lacks comprehensive coverage of modern Android privacy requirements — specifically around **data safety declarations**, **data deletion rights**, **children's privacy (COPPA)**, **third-party SDK disclosures**, and **explicit permission justifications** that Google Play now mandates.
 
-The Web Share API requires **transient user activation** (i.e., it must be called within a short window after a user click). Currently, the share functions download files from Supabase storage and/or generate a PDF *before* calling `navigator.share()`. This async work takes too long and the browser's transient activation expires, causing a "Permission denied" (`NotAllowedError`) error.
+### What changes
 
-Additionally, within the Lovable preview iframe, the `web-share` permission policy may block `navigator.share()` entirely.
+**File: `src/pages/PrivacyPolicyPage.tsx`**
 
-### Plan
+Expand the privacy policy with these additional sections required by Google Play's latest policies:
 
-**1. Restructure share flow in `pdfShare.ts`**
-- Wrap the `navigator.share()` call in a try/catch that specifically catches `NotAllowedError` / "Permission denied".
-- When native sharing fails for any reason (permission, unsupported, etc.), **automatically fall back to downloading the file** instead of showing an error toast.
-- Always attempt `navigator.share()` first, but treat failure as non-fatal.
+1. **Data Safety Declaration** — A new section explicitly listing each data type collected, whether it's shared with third parties, and whether it's encrypted in transit. This mirrors what Google Play's Data Safety form requires:
+   - Email address (collected, not shared)
+   - Photos/documents (collected for scanning, not shared)
+   - Device identifiers (collected for analytics, not shared)
+   - Usage data (collected for service improvement)
 
-**2. Restructure share flow in `ScanPage.tsx` and `MyScansPage.tsx`**
-- Same pattern: wrap `navigator.share()` in a try/catch.
-- On `NotAllowedError` or any share failure (except `AbortError`), fall back to:
-  - **Download the files** directly (using blob URL + anchor click), OR
-  - **Copy share text to clipboard** with a success toast.
-- Show a helpful toast like "Downloaded instead — native sharing unavailable" rather than a scary "Permission denied" error.
+2. **Data Deletion Rights** — A dedicated section explaining users can request deletion of their account and all associated data, with instructions on how to do so. Google Play now requires apps to offer a data deletion option.
 
-**3. Add `canShare` pre-check with graceful degradation**
-- Before attempting `navigator.share()`, check `navigator.share && navigator.canShare?.({...})`.
-- If `canShare` returns false or throws, skip directly to the download/clipboard fallback.
+3. **Children's Privacy (COPPA/GDPR-K)** — Statement that the app is not directed at children under 13, and that parental consent is required for minors.
 
-### Files to modify
+4. **Third-Party Services Disclosure** — Explicit listing of third-party services used (Supabase for storage/auth, AI services for document analysis) and links to their privacy policies.
 
-| File | Change |
-|------|--------|
-| `src/lib/pdfShare.ts` | Catch `NotAllowedError` in `shareCombinedPdf`, fall back to download |
-| `src/pages/ScanPage.tsx` | Catch share errors in `shareScan`, fall back to clipboard + download |
-| `src/pages/MyScansPage.tsx` | Same fallback pattern in `shareScan` |
+5. **Enhanced Permissions Justification** — Expand the existing "Permissions" section to explicitly state:
+   - Camera: used solely for document scanning, not background capture
+   - Storage/files: used only to import/export documents the user selects
+   - Internet: used for cloud sync, AI analysis, and authentication
+   - No access to: location, contacts, phone, SMS, calendar, microphone
 
-### Technical detail
+6. **Data Encryption & Security Standards** — Statement that data is encrypted in transit (TLS/HTTPS) and at rest where supported by infrastructure providers.
 
-The key change in each share function:
+7. **User Rights (GDPR/CCPA)** — Section covering right to access, correct, delete, and port personal data. Contact information for exercising these rights.
 
-```typescript
-try {
-  await navigator.share(shareData);
-} catch (err: any) {
-  if (err.name === 'AbortError') return; // user cancelled
-  // Any other error (NotAllowedError, etc.) → fallback
-  // Download file + copy text to clipboard
-}
-```
+8. **Data Retention Periods** — More specific retention details (e.g., account data retained until deletion, scans retained until user deletes them).
 
-For `shareCombinedPdf`, since the PDF is already generated before the share attempt, the fallback simply triggers a download of that same PDF blob.
+9. **Policy Contact & Effective Date** — Update effective date, add explicit contact email for privacy inquiries (required by Google Play).
+
+### Technical details
+
+Single file change to `src/pages/PrivacyPolicyPage.tsx` — adding approximately 6 new policy section objects to the `policySections` array and updating the header text with a more recent effective date and contact details.
 
