@@ -813,7 +813,14 @@ const MyScansPage = () => {
                   onClick={() => shareScan(selectedScan)}
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  Share Files
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => shareAsPdf(selectedScan)}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Share as PDF
                 </Button>
                 <Button 
                   variant="outline"
