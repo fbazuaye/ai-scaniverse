@@ -91,6 +91,7 @@ const MyScansPage = () => {
   const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
   const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     fetchScans();
