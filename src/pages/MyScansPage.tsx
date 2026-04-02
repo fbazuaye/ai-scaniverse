@@ -718,6 +718,31 @@ const MyScansPage = () => {
                 </Card>
               )}
 
+              {/* Document Chat */}
+              {(selectedScan.extracted_text || selectedScan.ai_summary) && (
+                isChatOpen ? (
+                  <DocumentChat
+                    documentContext={{
+                      title: selectedScan.title,
+                      category: selectedScan.category,
+                      extractedText: selectedScan.extracted_text,
+                      aiSummary: selectedScan.ai_summary,
+                      aiTags: selectedScan.ai_tags,
+                    }}
+                    onClose={() => setIsChatOpen(false)}
+                  />
+                ) : (
+                  <Button
+                    onClick={() => setIsChatOpen(true)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat with AI about this document
+                  </Button>
+                )
+              )}
+
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
                 <Button 
@@ -730,7 +755,7 @@ const MyScansPage = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setIsViewDetailsOpen(false)}
+                  onClick={() => { setIsViewDetailsOpen(false); setIsChatOpen(false); }}
                   className="flex-1"
                 >
                   <X className="w-4 h-4 mr-2" />
