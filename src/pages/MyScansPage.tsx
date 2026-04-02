@@ -794,10 +794,16 @@ const MyScansPage = () => {
                   <Download className="w-4 h-4 mr-2" />
                   {isDownloading ? "Downloading..." : "Download All Files"}
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => shareScan(selectedScan)}
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
                 <Button 
                   variant="outline"
                   onClick={() => { setIsViewDetailsOpen(false); setIsChatOpen(false); }}
-                  className="flex-1"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Close
