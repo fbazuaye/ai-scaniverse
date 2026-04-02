@@ -79,6 +79,7 @@ const ScanPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isOnline, pendingCount, isSyncing, doSync } = useOfflineSync();
   
   const scanType = searchParams.get("type") || "document";
   const [isSaving, setIsSaving] = useState(false);
