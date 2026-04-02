@@ -372,6 +372,33 @@ const ScanPage = () => {
         </div>
       </header>
 
+      {/* Offline / Sync Status Banner */}
+      {(!isOnline || pendingCount > 0) && (
+        <div className={`px-4 py-2 flex items-center justify-between text-sm ${
+          !isOnline ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+        }`}>
+          <div className="flex items-center gap-2">
+            {!isOnline ? (
+              <>
+                <WifiOff className="w-4 h-4" />
+                <span>You're offline — scans will be saved locally</span>
+              </>
+            ) : (
+              <>
+                <Wifi className="w-4 h-4" />
+                <span>{pendingCount} offline scan(s) pending sync</span>
+              </>
+            )}
+          </div>
+          {isOnline && pendingCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={doSync} disabled={isSyncing}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+              {isSyncing ? "Syncing..." : "Sync Now"}
+            </Button>
+          )}
+        </div>
+      )}
+
       <main className="px-4 sm:px-6 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* File Selection */}
