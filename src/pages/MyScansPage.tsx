@@ -305,6 +305,14 @@ const MyScansPage = () => {
     }
   };
 
+  const shareAsPdf = async (scan: Scan) => {
+    if (!scan.documents || scan.documents.length === 0) {
+      toast({ title: "No documents", description: "This scan has no documents to share.", variant: "destructive" });
+      return;
+    }
+    await shareCombinedPdf(scan.documents, scan.title, toast);
+  };
+
   const filteredScans = scans.filter(scan => {
     const matchesSearch = 
       scan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
