@@ -29,7 +29,8 @@ import {
   Zap,
   TrendingUp,
   Clock,
-  Copy
+  Copy,
+  MessageCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -46,7 +47,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import DocumentChat from "@/components/DocumentChat";
-import { MessageCircle } from "lucide-react";
 
 interface ScanDocument {
   id: string;
