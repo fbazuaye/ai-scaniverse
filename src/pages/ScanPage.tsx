@@ -31,7 +31,10 @@ import {
   Wand2,
   Home,
   X,
-  Plus
+  Plus,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
