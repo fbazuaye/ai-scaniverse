@@ -340,6 +340,44 @@ const ScanPage = () => {
     navigate("/my-scans");
   };
 
+  const shareScan = async () => {
+    const shareText = scanResults.length > 0
+      ? `${title}\n\n${scanResults.map((r, i) => `Document ${i + 1}:\n${r.aiSummary || r.extractedText || 'No text extracted'}`).join('\n\n')}`
+      : `Scanned documents: ${title}${description ? '\n' + description : ''}`;
+
+    // Try to share files via Web Share API Level 2
+    if (navigator.share) {
+      try {
+        const filesToShare: File[] = [];
+        for (const doc of savedDocuments) {
+          const { data } = await supabase.storage.from('scans').download(doc.file_path);
+          if (data) {
+            filesToShare.push(new File([data], doc.file_name, { type: doc.file_type || 'application/octet-stream' }));
+          }
+        }
+
+        const shareData: ShareData = {
+          title: title,
+          text: shareText,
+        };
+
+        if (filesToShare.length > 0 && navigator.canShare?.({ files: filesToShare })) {
+          shareData.files = filesToShare;
+        }
+
+        await navigator.share(shareData);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          toast({ title: "Share failed", description: err.message, variant: "destructive" });
+        }
+      }
+    } else {
+      // Fallback: copy text to clipboard
+      await navigator.clipboard.writeText(shareText);
+      toast({ title: "Copied to clipboard", description: "Share text copied. You can paste it in any app." });
+    }
+  };
+
   const resetScan = () => {
     selectedFiles.forEach(f => URL.revokeObjectURL(f.preview));
     setSelectedFiles([]);
