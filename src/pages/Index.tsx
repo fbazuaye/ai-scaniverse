@@ -69,16 +69,22 @@ const Index = () => {
             </div>
             <span className="text-xl font-bold tracking-tight text-foreground">AI ScanPro</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground bg-muted/50 rounded-full px-3 py-1.5">
-              <User className="h-3.5 w-3.5" />
-              <span className="max-w-32 truncate">{user?.email}</span>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleSignOut} className="rounded-full">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1.5">Sign Out</span>
-            </Button>
-          </div>
+            {user ? (
+              <>
+                <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground bg-muted/50 rounded-full px-3 py-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  <span className="max-w-32 truncate">{user.email}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSignOut} className="rounded-full">
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1.5">Sign Out</span>
+                </Button>
+              </>
+            ) : (
+              <Button variant="default" size="sm" onClick={() => navigate("/auth")} className="rounded-full">
+                Sign In
+              </Button>
+            )}
         </div>
       </header>
 
