@@ -738,6 +738,12 @@ const ScanPage = () => {
       </main>
       
       <Footer />
+      <ShareDialog
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        documents={savedDocuments}
+        title={title}
+      />
     </div>
   );
 };

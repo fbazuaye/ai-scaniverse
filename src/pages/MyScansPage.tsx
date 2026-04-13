@@ -782,6 +782,12 @@ const MyScansPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ShareDialog
+        open={!!shareDialogScan}
+        onOpenChange={(open) => { if (!open) setShareDialogScan(null); }}
+        documents={shareDialogScan?.documents || []}
+        title={shareDialogScan?.title || ""}
+      />
     </div>
   );
 };
