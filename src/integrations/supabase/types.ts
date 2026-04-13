@@ -14,7 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scan_documents: {
+        Row: {
+          ai_summary: string | null
+          ai_tags: string[] | null
+          category: string | null
+          created_at: string
+          extracted_text: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          is_sensitive: boolean | null
+          metadata: Json | null
+          scan_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          created_at?: string
+          extracted_text?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          scan_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          scan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_documents_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scans: {
+        Row: {
+          ai_summary: string | null
+          ai_tags: string[] | null
+          category: string | null
+          content_type: string
+          created_at: string
+          description: string | null
+          extracted_text: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          is_sensitive: boolean | null
+          metadata: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          content_type: string
+          created_at?: string
+          description?: string | null
+          extracted_text?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          ai_tags?: string[] | null
+          category?: string | null
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          extracted_text?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_sensitive?: boolean | null
+          metadata?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
