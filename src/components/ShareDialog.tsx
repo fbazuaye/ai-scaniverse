@@ -114,20 +114,38 @@ const ShareDialog = ({ open, onOpenChange, documents, title }: ShareDialogProps)
         return;
       }
 
-      // Try native share
-      if (navigator.share && navigator.canShare?.({ files: filesToShare })) {
-        await navigator.share({ title, files: filesToShare });
-        onOpenChange(false);
-      } else {
+      // Try native share, but handle permission denied by falling back to download
+      let shared = false;
+      if (navigator.share) {
+        try {
+          const canShare = navigator.canShare?.({ files: filesToShare });
+          if (canShare) {
+            await navigator.share({ title, files: filesToShare });
+            shared = true;
+            onOpenChange(false);
+          }
+        } catch (shareErr: any) {
+          // If user cancelled, just return
+          if (shareErr.name === "AbortError") {
+            setLoadingFormat(null);
+            return;
+          }
+          // Permission denied or other share error — fall through to download
+          console.warn("Native share failed, falling back to download:", shareErr.message);
+        }
+      }
+
+      if (!shared) {
         // Fallback: download files
         filesToShare.forEach(downloadFile);
-        toast({ title: "Downloaded", description: "Files saved to your device." });
+        toast({ title: "Downloaded", description: "Files have been saved to your device. You can share them from your file manager." });
         onOpenChange(false);
       }
     } catch (err: any) {
-      if (err.name === "AbortError") return; // user cancelled share sheet
+      // Fallback: if anything failed, try to download whatever we have
       console.error("Share error:", err);
-      toast({ title: "Share failed", description: err.message || "Something went wrong.", variant: "destructive" });
+      if (err.name === "AbortError") return;
+      toast({ title: "Share failed", description: "Files will be downloaded instead.", variant: "destructive" });
     } finally {
       setLoadingFormat(null);
     }
