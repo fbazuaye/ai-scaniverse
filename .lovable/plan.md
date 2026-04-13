@@ -1,43 +1,36 @@
 
+The reset flow is already wired correctly in the app, so simply “updating changes” in the frontend is probably not the main fix.
 
-## Fix Share: Direct sharing without download + format options
+What I found
+- `/reset-password` already exists in the router (`src/App.tsx`).
+- The forgot-password form already sends users to `${window.location.origin}/reset-password` (`src/pages/AuthPage.tsx`).
+- The reset page already handles recovery sessions and password updates (`src/pages/ResetPasswordPage.tsx`).
+- The most likely remaining issue is one of these:
+  1. you are still using an old reset email/link generated before the move to Lovable Cloud, or
+  2. the published site is serving stale cached code because the PWA/service worker config still contains old backend URLs (`vite.config.ts`).
 
-### Problem
-1. Files are downloaded from Supabase before `navigator.share()` is called, which causes the browser's user gesture to expire — so the share sheet never appears.
-2. Users want to choose share format (original, JPEG, PNG, PDF) before sharing.
+What needs to happen for changes to take effect
+- Backend auth URL changes take effect immediately for newly generated reset emails.
+- They do not fix old reset emails already in your inbox.
+- If we change the app/PWA code, then yes — the site must be republished, and you may need a hard refresh / clear site data once.
 
-### Solution
-Create a **Share Options Dialog** that appears when the user clicks "Share." This dialog presents format buttons (Original, JPEG, PNG, PDF). When the user taps a format button, that tap is the fresh user gesture — files are fetched and `navigator.share()` is called within it. A loading spinner shows during the brief fetch.
+Plan
+1. Remove the old backend host references from the PWA runtime cache in `vite.config.ts`.
+2. Add a one-time cache/service-worker cleanup for the published site so stale bundles cannot keep pointing at the old backend.
+3. Re-check the backend auth URL configuration so the published domain and `/reset-password` are allowed.
+4. Republish the app.
+5. Test on the published site only:
+   - open Forgot Password
+   - request a brand-new reset email
+   - ignore any older reset emails
+   - open the newest link and confirm it lands on `/reset-password`
+6. If it still fails after that, inspect the exact reset request and current backend auth logs to confirm whether the bad URL is being generated server-side or served from cached frontend code.
 
-### Files to change
+Technical details
+- Correct route: `src/App.tsx`
+- Reset email request: `src/pages/AuthPage.tsx`
+- Recovery page handling: `src/pages/ResetPasswordPage.tsx`
+- Suspicious stale-cache source: `vite.config.ts` still references the old backend host in PWA runtime caching
+- Preview already unregisters service workers in `src/main.tsx`, but the published site does not, which is why this can keep affecting real users
 
-**New file: `src/components/ShareDialog.tsx`**
-- A reusable dialog/sheet component with 4 share format options:
-  - **Original** — shares files in their original format
-  - **JPEG** — converts images to JPEG before sharing
-  - **PNG** — converts images to PNG before sharing  
-  - **PDF** — combines all into a single PDF (existing logic)
-- Each button handles its own click gesture: fetches files from Supabase, converts format if needed (using canvas for JPEG/PNG conversion), then calls `navigator.share({ files })`.
-- Shows a loading spinner per-button while fetching/converting.
-- Falls back to download if share API unavailable.
-
-**`src/pages/ScanPage.tsx`**
-- Replace `shareScan()` and `shareAsPdf()` with opening the new `ShareDialog`.
-- Pass documents and title as props.
-
-**`src/pages/MyScansPage.tsx`**
-- Same change: replace `shareScan()` and `shareAsPdf()` with the `ShareDialog`.
-
-**`src/lib/pdfShare.ts`**
-- No changes needed — PDF generation logic stays as-is, called from ShareDialog.
-
-### How format conversion works
-- **JPEG/PNG**: Fetch blob from Supabase → create `Image` from blob URL → draw on `<canvas>` → `canvas.toBlob('image/jpeg'|'image/png')` → wrap in `File` → `navigator.share({ files })`.
-- **Original**: Fetch blob → wrap in `File` → share directly.
-- **PDF**: Use existing `createCombinedPdf()` function.
-
-### User experience
-1. Tap "Share" → dialog opens with 4 format buttons
-2. Tap desired format (e.g., "JPEG") → brief loading spinner → native share sheet appears with WhatsApp, Email, etc.
-3. No files download to device unless share API is unavailable (fallback)
-
+Once approved, I’ll implement the cache/PWA cleanup, then you should request one fresh reset email to verify the fix end-to-end.
