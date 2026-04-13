@@ -1,43 +1,43 @@
 
 
-## Update Privacy Policy with Latest Android Privacy Protections
+## Fix Share: Direct sharing without download + format options
 
 ### Problem
-Google is flagging the app because the privacy policy lacks comprehensive coverage of modern Android privacy requirements — specifically around **data safety declarations**, **data deletion rights**, **children's privacy (COPPA)**, **third-party SDK disclosures**, and **explicit permission justifications** that Google Play now mandates.
+1. Files are downloaded from Supabase before `navigator.share()` is called, which causes the browser's user gesture to expire — so the share sheet never appears.
+2. Users want to choose share format (original, JPEG, PNG, PDF) before sharing.
 
-### What changes
+### Solution
+Create a **Share Options Dialog** that appears when the user clicks "Share." This dialog presents format buttons (Original, JPEG, PNG, PDF). When the user taps a format button, that tap is the fresh user gesture — files are fetched and `navigator.share()` is called within it. A loading spinner shows during the brief fetch.
 
-**File: `src/pages/PrivacyPolicyPage.tsx`**
+### Files to change
 
-Expand the privacy policy with these additional sections required by Google Play's latest policies:
+**New file: `src/components/ShareDialog.tsx`**
+- A reusable dialog/sheet component with 4 share format options:
+  - **Original** — shares files in their original format
+  - **JPEG** — converts images to JPEG before sharing
+  - **PNG** — converts images to PNG before sharing  
+  - **PDF** — combines all into a single PDF (existing logic)
+- Each button handles its own click gesture: fetches files from Supabase, converts format if needed (using canvas for JPEG/PNG conversion), then calls `navigator.share({ files })`.
+- Shows a loading spinner per-button while fetching/converting.
+- Falls back to download if share API unavailable.
 
-1. **Data Safety Declaration** — A new section explicitly listing each data type collected, whether it's shared with third parties, and whether it's encrypted in transit. This mirrors what Google Play's Data Safety form requires:
-   - Email address (collected, not shared)
-   - Photos/documents (collected for scanning, not shared)
-   - Device identifiers (collected for analytics, not shared)
-   - Usage data (collected for service improvement)
+**`src/pages/ScanPage.tsx`**
+- Replace `shareScan()` and `shareAsPdf()` with opening the new `ShareDialog`.
+- Pass documents and title as props.
 
-2. **Data Deletion Rights** — A dedicated section explaining users can request deletion of their account and all associated data, with instructions on how to do so. Google Play now requires apps to offer a data deletion option.
+**`src/pages/MyScansPage.tsx`**
+- Same change: replace `shareScan()` and `shareAsPdf()` with the `ShareDialog`.
 
-3. **Children's Privacy (COPPA/GDPR-K)** — Statement that the app is not directed at children under 13, and that parental consent is required for minors.
+**`src/lib/pdfShare.ts`**
+- No changes needed — PDF generation logic stays as-is, called from ShareDialog.
 
-4. **Third-Party Services Disclosure** — Explicit listing of third-party services used (Supabase for storage/auth, AI services for document analysis) and links to their privacy policies.
+### How format conversion works
+- **JPEG/PNG**: Fetch blob from Supabase → create `Image` from blob URL → draw on `<canvas>` → `canvas.toBlob('image/jpeg'|'image/png')` → wrap in `File` → `navigator.share({ files })`.
+- **Original**: Fetch blob → wrap in `File` → share directly.
+- **PDF**: Use existing `createCombinedPdf()` function.
 
-5. **Enhanced Permissions Justification** — Expand the existing "Permissions" section to explicitly state:
-   - Camera: used solely for document scanning, not background capture
-   - Storage/files: used only to import/export documents the user selects
-   - Internet: used for cloud sync, AI analysis, and authentication
-   - No access to: location, contacts, phone, SMS, calendar, microphone
-
-6. **Data Encryption & Security Standards** — Statement that data is encrypted in transit (TLS/HTTPS) and at rest where supported by infrastructure providers.
-
-7. **User Rights (GDPR/CCPA)** — Section covering right to access, correct, delete, and port personal data. Contact information for exercising these rights.
-
-8. **Data Retention Periods** — More specific retention details (e.g., account data retained until deletion, scans retained until user deletes them).
-
-9. **Policy Contact & Effective Date** — Update effective date, add explicit contact email for privacy inquiries (required by Google Play).
-
-### Technical details
-
-Single file change to `src/pages/PrivacyPolicyPage.tsx` — adding approximately 6 new policy section objects to the `policySections` array and updating the header text with a more recent effective date and contact details.
+### User experience
+1. Tap "Share" → dialog opens with 4 format buttons
+2. Tap desired format (e.g., "JPEG") → brief loading spinner → native share sheet appears with WhatsApp, Email, etc.
+3. No files download to device unless share API is unavailable (fallback)
 
