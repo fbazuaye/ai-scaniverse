@@ -32,8 +32,7 @@ import {
   Clock,
   Copy,
   MessageCircle,
-  Share2,
-  FileDown
+  Share2
 } from "lucide-react";
 import {
   DropdownMenu,
