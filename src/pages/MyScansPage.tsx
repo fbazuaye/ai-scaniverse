@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { shareCombinedPdf } from "@/lib/pdfShare";
+import ShareDialog from "@/components/ShareDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,8 +32,7 @@ import {
   Clock,
   Copy,
   MessageCircle,
-  Share2,
-  FileDown
+  Share2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -95,6 +94,7 @@ const MyScansPage = () => {
   const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [shareDialogScan, setShareDialogScan] = useState<Scan | null>(null);
 
   useEffect(() => {
     fetchScans();
@@ -269,53 +269,7 @@ const MyScansPage = () => {
     });
   };
 
-  const shareScan = async (scan: Scan) => {
-    const shareText = `${scan.title}${scan.description ? '\n' + scan.description : ''}${scan.ai_summary ? '\n\nSummary: ' + scan.ai_summary : ''}`;
-
-    let shared = false;
-
-    if (navigator.share) {
-      try {
-        const filesToShare: File[] = [];
-        if (scan.documents) {
-          for (const doc of scan.documents) {
-            const { data } = await supabase.storage.from('scans').download(doc.file_path);
-            if (data) {
-              filesToShare.push(new File([data], doc.file_name, { type: doc.file_type || 'application/octet-stream' }));
-            }
-          }
-        }
-
-        const shareData: ShareData = { title: scan.title, text: shareText };
-        if (filesToShare.length > 0 && navigator.canShare?.({ files: filesToShare })) {
-          shareData.files = filesToShare;
-        }
-
-        await navigator.share(shareData);
-        shared = true;
-      } catch (err: any) {
-        if (err.name === 'AbortError') return; // user cancelled
-        console.warn("Native share failed, falling back:", err.message);
-      }
-    }
-
-    if (!shared) {
-      try {
-        await navigator.clipboard.writeText(shareText);
-        toast({ title: "Copied to clipboard", description: "Share text copied. You can paste it in any app." });
-      } catch {
-        toast({ title: "Share unavailable", description: "Could not share or copy text.", variant: "destructive" });
-      }
-    }
-  };
-
-  const shareAsPdf = async (scan: Scan) => {
-    if (!scan.documents || scan.documents.length === 0) {
-      toast({ title: "No documents", description: "This scan has no documents to share.", variant: "destructive" });
-      return;
-    }
-    await shareCombinedPdf(scan.documents, scan.title, toast);
-  };
+  const openShareDialog = (scan: Scan) => setShareDialogScan(scan);
 
   const filteredScans = scans.filter(scan => {
     const matchesSearch = 
@@ -468,13 +422,9 @@ const MyScansPage = () => {
                             <Download className="w-4 h-4 mr-2" />
                             {isDownloading ? "Downloading..." : "Export"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => shareScan(scan)}>
+                          <DropdownMenuItem onClick={() => openShareDialog(scan)}>
                             <Share2 className="w-4 h-4 mr-2" />
-                            Share Files
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => shareAsPdf(scan)}>
-                            <FileDown className="w-4 h-4 mr-2" />
-                            Share as PDF
+                            Share
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => deleteScan(scan.id)}
@@ -814,17 +764,10 @@ const MyScansPage = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => shareScan(selectedScan)}
+                  onClick={() => openShareDialog(selectedScan)}
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share Files
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => shareAsPdf(selectedScan)}
-                >
-                  <FileDown className="w-4 h-4 mr-2" />
-                  Share as PDF
+                  Share
                 </Button>
                 <Button 
                   variant="outline"
@@ -838,6 +781,12 @@ const MyScansPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ShareDialog
+        open={!!shareDialogScan}
+        onOpenChange={(open) => { if (!open) setShareDialogScan(null); }}
+        documents={shareDialogScan?.documents || []}
+        title={shareDialogScan?.title || ""}
+      />
     </div>
   );
 };
