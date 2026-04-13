@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { getAuthRedirectUrl } from '@/lib/authRedirect';
 import { Loader2, ScanLine, Shield, Zap, Globe, FileText, ArrowLeft, Sparkles } from 'lucide-react';
 
 const AuthPage = () => {
@@ -86,7 +87,7 @@ const AuthPage = () => {
     }
     setIsLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: getAuthRedirectUrl('/reset-password'),
     });
     if (error) {
       toast({
